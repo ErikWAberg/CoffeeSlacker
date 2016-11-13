@@ -1,0 +1,58 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    } 
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:1.4.1.RELEASE")
+    }
+}
+
+plugins {
+    id "io.spring.dependency-management" version "0.6.1.RELEASE"
+}
+
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'spring-boot'
+
+jar {
+   baseName = 'CoffeeSlacker'
+   version = '1.0'
+}
+
+task copySettings(type: Copy) {
+    from 'secret/application.properties'
+    into 'src/main/resources'
+}
+
+idea {
+    module {
+        name = 'CoffeeSlacker'
+        inheritOutputDirs = false
+        outputDir = file('build/classes')
+        testOutputDir = file('build/test')
+        downloadJavadoc = true
+        sourceCompatibility = 1.8
+        targetCompatibility = 1.8
+    }
+}
+
+
+repositories {
+    maven {
+        mavenCentral()
+        url 'https://repo.spring.io/libs-snapshot'
+    }
+}
+
+dependencies {
+    compile("org.springframework.boot:spring-boot-starter-web")
+    compile("org.springframework.boot:spring-boot-starter-data-mongodb")
+    compile("org.springframework.boot:spring-boot-starter-actuator")
+
+    compile("com.fasterxml.jackson.core:jackson-databind")
+    compile group: 'in.ashwanthkumar', name: 'slack-java-webhook', version: '0.0.7'
+} 
+
+
+

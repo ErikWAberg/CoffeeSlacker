@@ -1,0 +1,15 @@
+.idea
+application.properties
+secret
+coffee.*
+.gradle
+build/*
+classes/*
+idea
+
+bower_components
+node_modules
+dist/
+.tmp
+app.yaml
+
