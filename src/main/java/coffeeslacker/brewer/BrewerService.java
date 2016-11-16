@@ -75,7 +75,7 @@ public class BrewerService {
     }
 
     public int getBrewerCount() {
-        if(mInitialBrewerCount == 0) {
+        if(mInitialBrewerCount < 2) {
             final List<Brewer> tAll = mBrewerRepository.findAll();
             mInitialBrewerCount = tAll.size();
         }
