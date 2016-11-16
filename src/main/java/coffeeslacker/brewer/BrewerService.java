@@ -56,7 +56,7 @@ public class BrewerService {
     }
 
     public List<Brewer> getBrewersSortedByBrewCount() {
-        return mBrewerRepository.findAll(new Sort(Sort.Direction.DESC, "brews").and(new Sort(Sort.Direction.DESC, "slackUser")));
+        return mBrewerRepository.findAll(new Sort(Sort.Direction.DESC, "brews").and(new Sort(Sort.Direction.ASC, "slackUser")));
     }
 
     public Brewer getBrewMaster() {

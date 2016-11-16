@@ -50,7 +50,9 @@ public class AppConfig {
 
     @Bean
     public SlackService slackService() {
-        return new SlackService(mSlackWebHook, mSlackToken, mSlackChannel, cDisplayName, cIcon, debugSlackService());
+        final SlackService tSlackService = new SlackService(mSlackWebHook, mSlackToken, mSlackChannel, cDisplayName, cIcon, debugSlackService());
+        tSlackService.setDebugUser(mSlackDebugUser);
+        return tSlackService;
     }
     
 }
