@@ -291,7 +291,8 @@ public class CoffeeSlacker implements BrewBountyListener {
     private void updateTodaysBrewCount() {
         LocalDate tToday = LocalDate.now();
         BrewStat tBrewStat = mBrewStatService.getBrewStatByDate(tToday);
-        mBrewStatService.incrementBrews(tBrewStat);
+        tBrewStat.incrementBrews();
+        mBrewStatService.save(tBrewStat);
     }
 
     private int getYesterdaysBrewCount() {
@@ -316,10 +317,9 @@ public class CoffeeSlacker implements BrewBountyListener {
 
         final Stream<BrewStat> tStatStreamForMonth = tAllBrewStats.stream()
                 .filter(stat ->
-                        stat.getDate().getDayOfMonth() != tDate.getDayOfMonth() &&
+                                stat.getDate().getDayOfMonth() != tDate.getDayOfMonth() &&
                                 stat.getDate().getMonth() == tDate.getMonth() &&
                                 stat.getDate().getYear() == tDate.getYear());
-
         OptionalDouble tBrewAverageForMonth = tStatStreamForMonth
                 .mapToInt(BrewStat::getBrews).average();
         return tBrewAverageForMonth.isPresent() ? tBrewAverageForMonth.getAsDouble() : 0;
@@ -327,7 +327,7 @@ public class CoffeeSlacker implements BrewBountyListener {
     }
 
     private double averagePreviousMonth() {
-        LocalDate tDate = LocalDate.now();
+        LocalDate tDate = LocalDate.now().minusMonths(1);
         final List<BrewStat> tAllBrewStats = mBrewStatService.getAllBrewStats();
 
         final Stream<BrewStat> tStatStreamForMonth = tAllBrewStats.stream()

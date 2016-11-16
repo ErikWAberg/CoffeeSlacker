@@ -14,6 +14,11 @@ public class BrewStatService {
 
     private final BrewStatRepository mBrewStatRepository;
 
+    @PostConstruct
+    public void asd() {
+        mBrewStatRepository.deleteAll();
+    }
+
     @Autowired
     public BrewStatService(BrewStatRepository pBrewStatRepository) {
         mBrewStatRepository = pBrewStatRepository;
@@ -28,8 +33,7 @@ public class BrewStatService {
         return tBrewStat;
     }
 
-    public BrewStat incrementBrews(BrewStat pBrewStat) {
-        pBrewStat.incrementBrews();
+    public BrewStat save(BrewStat pBrewStat) {
         return mBrewStatRepository.save(pBrewStat);
     }
 
