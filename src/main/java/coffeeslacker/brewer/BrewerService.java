@@ -80,4 +80,11 @@ public class BrewerService {
         }
         return mInitialBrewerCount;
     }
+
+    public void deleteBrewer(final String pSlackUser) {
+        Brewer tBrewer = mBrewerRepository.findBySlackUser(pSlackUser);
+        if(tBrewer != null) {
+            mBrewerRepository.delete(tBrewer);
+        }
+    }
 }

@@ -49,7 +49,7 @@ public class SlackController {
                 tResponse = mCoffeeSlacker.onBountyRequest(user_name);
                 break;
             case "!help":
-                tResponse = "```!claim to claim a brew.\n!stats to view statistics & top 15 brewers.\n!bounty to give one of your points to" +
+                tResponse = "```!claim to claim a brew.\n!stats to view statistics & top 15 brewers.\n!bounty to give one of your points to " +
                         "the person that claims a brew within the next 15 minutes.```";
                 break;
         }

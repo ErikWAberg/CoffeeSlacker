@@ -3,6 +3,7 @@ package coffeeslacker.app;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -22,8 +23,8 @@ public class DebugController {
     }
 
 
-    @RequestMapping(value = "/blyat", method = RequestMethod.GET)
-    public void deleteEverything() {
-        mCoffeeSlacker.deleteEverything();
+    @RequestMapping(value = "/blyat", method = RequestMethod.POST)
+    public void deleteEverything(@RequestParam("asd") String asd) {
+        mCoffeeSlacker.blyat(asd);
     }
 }
