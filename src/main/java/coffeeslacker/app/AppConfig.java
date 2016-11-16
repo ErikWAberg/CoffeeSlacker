@@ -43,14 +43,14 @@ public class AppConfig {
         if(mSlackDebugChannel != null && mSlackDebugToken != null && mSlackDebugWebHook != null && mSlackDebugUser != null) {
             final SlackService tDebugService = new SlackService(mSlackDebugWebHook, mSlackDebugToken, mSlackDebugChannel, cDisplayName, cIcon, null);
             tDebugService.setDebugUser(mSlackDebugUser);
+            return tDebugService;
         }
         return null;
     }
 
     @Bean
     public SlackService slackService() {
-        final SlackService tSlackService = new SlackService(mSlackWebHook, mSlackToken, mSlackChannel, cDisplayName, cIcon, debugSlackService());
-        return tSlackService;
+        return new SlackService(mSlackWebHook, mSlackToken, mSlackChannel, cDisplayName, cIcon, debugSlackService());
     }
     
 }
