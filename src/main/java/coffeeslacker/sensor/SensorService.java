@@ -40,8 +40,7 @@ public class SensorService {
             tSensor.update(pLowerThreshold, pUpperThreshold, pSensorType, pLocation);
         }
 
-        mSensorRepository.save(tSensor);
-        return tSensor;
+        return mSensorRepository.save(tSensor);
     }
 
     public List<Sensor> getAllSensors() {

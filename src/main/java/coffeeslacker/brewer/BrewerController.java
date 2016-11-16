@@ -27,13 +27,13 @@ public class BrewerController {
     public Brewer registerBrewer(@RequestParam("slackUser") String pSlackUser,
                                  @RequestParam("rfid") String pRfid) {
         cLogger.info("Register brewer: " + " slackUser: " + pSlackUser + " rfid: " + pRfid);
-        return mBrewerService.registerBrewer(pSlackUser, pRfid);
+        return mBrewerService.registerRfid(pSlackUser, pRfid);
     }
 
 
     @RequestMapping(value = "/list", method = RequestMethod.GET)
     public List<Brewer> getAllBrewers()  {
-        return mBrewerService.getAllBrewers();
+        return mBrewerService.getBrewersSortedByBrewCount();
     }
 
     @RequestMapping(value = "/find", method = RequestMethod.GET)

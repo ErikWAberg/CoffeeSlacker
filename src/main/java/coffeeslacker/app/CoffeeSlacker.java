@@ -5,20 +5,20 @@ import coffeeslacker.brewer.BrewerService;
 import coffeeslacker.sensor.Sensor;
 import coffeeslacker.sensor.SensorService;
 import coffeeslacker.sensor.SensorType;
-import coffeeslacker.slack.SlackNotification;
 import coffeeslacker.slack.SlackService;
 import coffeeslacker.statistics.BrewStat;
 import coffeeslacker.statistics.BrewStatService;
-import in.ashwanthkumar.slack.webhook.SlackMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Month;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -26,29 +26,28 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 @Service
-public class CoffeeSlacker {
+public class CoffeeSlacker implements BrewBountyListener {
 
     private static final Logger cLogger = LoggerFactory.getLogger(CoffeeSlacker.class);
     private static final String cMasterTitle = "Master Elite Bean Injector";
-    private final long cBrewCompleteDelay = 75;
-    private final long cBrewCompleteLeaderDelay = 55;
-    private final int cBountyHuntDurationMinutes = 15;
-    private final long cBrewInitDelay = 60;
+    private long mChannelDelayAfterCompletedBrew = 75;
+    private TimeUnit mChannelDelayAfterCompletedBrewUnit = TimeUnit.SECONDS;
+    private long mMsgDelayAfterCompletedBrew = 55;
+    private TimeUnit mMsgDelayAfterCompletedBrewUnit = TimeUnit.SECONDS;
+    private int mBountyHuntDuration = 15;
+    private TimeUnit mBountyHuntDurationUnit = TimeUnit.MINUTES;
+    private long mBrewExpectedCompletionTime = 4;
+    private TemporalUnit mBrewExpectedCompletionUnit = ChronoUnit.MINUTES;
 
 
     private BrewerService mBrewerService;
     private SensorService mSensorService;
     private SlackService mSlackService;
     private BrewStatService mBrewStatService;
-    private boolean mBrewing = false;
-    private boolean mTagScanned = false;
-
-    private Brewer mPreviousBrewer = null;
-    private Brewer mPreviousTopBrewer = null;
-    private long mPreviousBrewTime;
-    private BeanBounty mBeanBounty = null;
-
     private ScheduledExecutorService mScheduledExecutorService;
+
+    private Brew mBrew = Brew.instance();
+    private boolean mDebugMode = false;
 
     @Autowired
     public CoffeeSlacker(BrewerService pBrewerService, SensorService pSensorService, SlackService pSlackService, BrewStatService pBrewStatService) {
@@ -56,24 +55,13 @@ public class CoffeeSlacker {
         mSensorService = pSensorService;
         mSlackService = pSlackService;
         mBrewStatService = pBrewStatService;
-        mPreviousBrewTime = System.currentTimeMillis();
         mScheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-    }
-
-    private void brewCompleteNotifyLeaders(List<String> pSlackUsers, SlackMessage pSlackMessage) {
-        mScheduledExecutorService.schedule(() -> pSlackUsers.forEach(pUser -> mSlackService.sendToUser(pUser, pSlackMessage)), cBrewCompleteLeaderDelay, TimeUnit.SECONDS);
-    }
-
-    private void brewCompleteNotifyChannel(SlackMessage pSlackMessage) {
-        mScheduledExecutorService.schedule(() -> mSlackService.send(pSlackMessage), cBrewCompleteDelay, TimeUnit.SECONDS);
-    }
-
-    void toggleDebug() {
-        mSlackService.toggleDebugMode();
+        normalConfig();
+        toggleDebug();
     }
 
 
-    @Async
+
     public synchronized void onSensorReport(final String pValue, final int pSensorId) {
         final Sensor tSensor = mSensorService.getSensorById(pSensorId);
         if (tSensor != null) {
@@ -81,12 +69,25 @@ public class CoffeeSlacker {
             if (tSensorType != null) {
                 switch (tSensorType) {
                     case LIGHT:
+                        cLogger.info("On lux update: lux=" + pValue);
                         onLuxScan(pValue, tSensor);
                         break;
                     case RFID:
-                        onBrewClaim(mBrewerService.getBrewerByRfid(pValue));
+                        cLogger.info("On RFID scan: RFID=" + pValue);
+
+                        final Brewer tBrewerByRfid = mBrewerService.getBrewerByRfid(pValue);
+                        if (tBrewerByRfid != null) {
+                            onBrewClaim(tBrewerByRfid);
+                        } else {
+                            cLogger.info("RFID not registered: " + pValue);
+                            //need slack-bot
+                            //mSlackService.send("Bleep, bloop! I mean, hello RFID-Brewer! I don't think we've met before? PM slackbot with '!register'");
+                        }
+
                         break;
                     case POWER:
+                        cLogger.info("On power scan: power=" + pValue);
+
                         onPowerScan(pValue, tSensor);
                         break;
                 }
@@ -100,87 +101,112 @@ public class CoffeeSlacker {
 
     }
 
-    public void onClaimRequest(SlackNotification pNotification) {
-        onBrewClaim(mBrewerService.getBrewerBySlackUser(pNotification.getUser_name()));
+    public void onClaimRequest(String pSlackUser) {
+        mSlackService.send(onBrewClaim(mBrewerService.getBrewer(pSlackUser)));
     }
 
-    private void onBrewClaim(Brewer pBrewer) {
+    private String onBrewClaim(Brewer pClaimee) {
+        String response = "";
 
-        if (pBrewer != null) {
-            if (mBrewing && !mTagScanned) {
-                mTagScanned = true;
-                mPreviousBrewer = pBrewer;
+        if (!mBrew.isBrewing()) {
+            return "Aint no brew to claim yo.";
+        }
 
-                if (mBeanBounty != null && mBeanBounty.canBeClaimed(cBountyHuntDurationMinutes)) {
-                    Brewer tBountyStarter = mBeanBounty.getBountyStarter();
+        if (mBrew.hasBeenClaimed()) {
+            return "Brew has already been claimed.";
+        }
+        mBrew.claim(pClaimee);
 
-                    mBeanBounty.claimBounty(pBrewer);
-                    mBeanBounty.cancelBountHuntTimer();
-                    mBeanBounty = null;
+        final BrewBounty tActiveBounty = mBrew.getActiveBounty();
+        if (tActiveBounty != null) {
 
-                    if (tBountyStarter.equals(pBrewer)) {
-                        mSlackService.send(new SlackMessage("Nice try " + pBrewer.getSlackUser() + "! But you still get 1 point..."));
-                        mBrewerService.incrementBrews(pBrewer);
-                    } else {
-                        mSlackService.send(new SlackMessage("Bean bounty claimed by " + pBrewer.getSlackUser() + ", having " + pBrewer.getBrews() + "+2 brews!"
-                                + " _" + tBountyStarter.getSlackUser() + " loses one point, having " + tBountyStarter.getBrews() + "-1 brews_"));
-                        mBrewerService.incrementBrews(pBrewer);
-                        mBrewerService.incrementBrews(pBrewer);
-                        mBrewerService.decrementBrews(tBountyStarter);
-                    }
+            if (tActiveBounty.hasBeenClaimed()) {
+                return "Brew bounty has already been claimed.";
+            }
 
-                } else {
-                    mSlackService.send(new SlackMessage("Brew claimed by " + pBrewer.getSlackUser() + ", having " + pBrewer.getBrews() + "+1 brews!"));
-                    mBrewerService.incrementBrews(pBrewer);
-                }
+            tActiveBounty.claim(pClaimee);
+
+            if (tActiveBounty.startedBy().equals(pClaimee)) {
+                pClaimee.adjustBrews(1);
+                response = "Nice try " + pClaimee.getSlackUser() + "! But you still get 1 point...";
+
+            } else {
+                final Brewer tBountyStarter = mBrewerService.getBrewer(tActiveBounty.startedBy());
+                pClaimee.adjustBrews(2);
+                tBountyStarter.adjustBrews(-1);
+                mBrewerService.save(tBountyStarter);
+
+                response = "Brew bounty claimed by " + pClaimee.getSlackUser() + ", now having " + pClaimee.getBrews() + " brews! (+2)"
+                        + "\n_Bounty starter " + tBountyStarter.getSlackUser() + " loses one point, having " + tBountyStarter.getBrews() + " brews. (-1)_";
+            }
+
+        } else {
+            pClaimee.adjustBrews(1);
+            response = "Brew claimed by " + pClaimee.getSlackUser() + ", now having " + pClaimee.getBrews() + " brews! (+1)";
+        }
+
+        mBrewerService.save(pClaimee);
+
+        final Brewer tBrewMaster = mBrewerService.getBrewMaster();
+
+        if (tBrewMaster == null || (!pClaimee.equals(tBrewMaster) && pClaimee.isBetterThan(tBrewMaster))) {
+            response += "\n*" + pClaimee.getSlackUser() + " is now the " + cMasterTitle + "!*";
+        }
+        return response;
+    }
 
 
-                final Brewer tTopBrewer = mBrewerService.getTopBrewer();
+    private void brewCompleteNotifyLeaders(List<String> pSlackUsers, String pSlackMessage) {
+        mScheduledExecutorService.schedule(() -> {
+            if(mBrew.isWaitingForDrip()) {
+                pSlackUsers.forEach(pUser -> mSlackService.sendToUser(pUser, pSlackMessage));
+            }
 
-                if (tTopBrewer != null && !tTopBrewer.equals(pBrewer) && pBrewer.isBetterThan(tTopBrewer) || mPreviousTopBrewer == null) {
-                    mSlackService.send(new SlackMessage("*" + pBrewer.getSlackUser() + " is now the " + cMasterTitle + "!*"));
-                    mPreviousTopBrewer = tTopBrewer;
-                }
+        }, mMsgDelayAfterCompletedBrew, mMsgDelayAfterCompletedBrewUnit);
+    }
 
-            } /*else {
-                slackSend(new SlackMessage("SYSTEM ALERT! " + tBrewer.getName() + " is trying to cheat!"));
-            }*/
-
-        } /*else {
-            slackSend(new SlackMessage("Bleep, bloop! I mean, hello Brewer! I don't think we've met before? PM slackbot with '!register'"));
-        }*/
-
+    private void brewCompleteNotifyChannel(String pSlackMessage) {
+        mScheduledExecutorService.schedule(() -> {
+            if(mBrew.isWaitingForDrip()) {
+                mSlackService.send(pSlackMessage);
+                mBrew.reset();
+            }
+        }, mChannelDelayAfterCompletedBrew, mChannelDelayAfterCompletedBrewUnit);
     }
 
     private void onLuxScan(String pLux, Sensor pSensor) {
         try {
             int tLux = Integer.parseInt(pLux);
-            if (tLux > (int) pSensor.getUpperThreshold() && !mBrewing && ((System.currentTimeMillis() - mPreviousBrewTime) > cBrewInitDelay * 1000)) {
-                mBrewing = true;
-                mPreviousBrewTime = System.currentTimeMillis();
 
-                mSlackService.send(new SlackMessage("Beans injected, brew initialized!"));
+            if (tLux > (int) pSensor.getUpperThreshold() && !mBrew.isBrewing()) {
+                mBrew.startBrew();
+                mSlackService.send("Beans injected, brew initialized!");
 
-            } else if (tLux < (int) pSensor.getLowerThreshold() && mBrewing) {
-                List<String> tPrivilegedUsers = new LinkedList<>();
-                Brewer tTopBrewer = mBrewerService.getTopBrewer();
-                if (tTopBrewer != null) {
-                    tPrivilegedUsers.add(tTopBrewer.getSlackUser());
-                }
+            } else if (tLux < (int) pSensor.getLowerThreshold() && mBrew.isBrewing()) {
 
-                if (mTagScanned && mPreviousBrewer != null) {
-                    if (tTopBrewer == null || !tTopBrewer.equals(mPreviousBrewer)) {
-                        tPrivilegedUsers.add(mPreviousBrewer.getSlackUser());
+                if (mBrew.afterExpectedBrewTime() && !mBrew.isWaitingForDrip()) {
+                    mBrew.waitForDrip();
+                    List<String> tPrivilegedUsers = new LinkedList<>();
+                    Brewer tTopBrewer = mBrewerService.getBrewMaster();
+
+                    if (tTopBrewer != null) {
+                        tPrivilegedUsers.add(tTopBrewer.getSlackUser());
                     }
-                    mPreviousBrewer = null;
+
+                    if (mBrew.hasBeenClaimed()) {
+                        if (!tPrivilegedUsers.contains(mBrew.getClaimer().getSlackUser())) {
+                            tPrivilegedUsers.add(mBrew.getClaimer().getSlackUser());
+                        }
+                    }
+
+                    brewCompleteNotifyLeaders(tPrivilegedUsers, "Psst! Brew is klar, but don't berätta för anyone!");
+                    brewCompleteNotifyChannel("*Brew complete*, först to kvarn!");
+                    updateTodaysBrewCount();
+
+                } else {
+                    cLogger.info("Got finished brew, but afterExpectedBrewTime: " + mBrew.afterExpectedBrewTime() + " waitingForDrip: " + mBrew.isWaitingForDrip());
                 }
 
-                brewCompleteNotifyLeaders(tPrivilegedUsers, new SlackMessage("Psst! Brew is klar, but don't berätta för anyone!"));
-                brewCompleteNotifyChannel(new SlackMessage("*Brew complete*, först to kvarn!"));
-                updateTodaysBrewCount();
-
-                mBrewing = false;
-                mTagScanned = false;
             }
 
         } catch (NumberFormatException nfe) {
@@ -190,49 +216,90 @@ public class CoffeeSlacker {
 
 
     public String onBountyRequest(String pSlackUser) {
-        Brewer tBountyStarter = mBrewerService.getBrewerBySlackUser(pSlackUser);
 
-        if (tBountyStarter.getBrews() > 0) {
-            if (mBeanBounty != null && !mBeanBounty.hasBeenClaimed()) {
-                return "Bean bounty already in progress!";
-            }
-            mBeanBounty = new BeanBounty(tBountyStarter);
-            mBeanBounty.startBountyHuntTimer(mSlackService, cBountyHuntDurationMinutes);
-            return "*Bean bounty started by " + pSlackUser + "!*"
-                    + " Claim a brew within " + cBountyHuntDurationMinutes + " minutes for extra points!";
-        } else {
+        if (mBrew.isBrewing()) {
+            return "Brew already in progress.";
+        }
+        if (mBrew.getActiveBounty() != null) {
+            return "Bounty already in progress.";
+        }
+
+        Brewer tBountyStarter = mBrewerService.getBrewer(pSlackUser);
+
+        if (tBountyStarter.getBrews() == 0) {
             return "You must claim a few brews before you can register a bounty!";
+        }
+
+        mBrew.startBounty(tBountyStarter, this);
+        return "*Bean bounty started by " + pSlackUser + "!*"
+                + " Claim a brew within " + mBountyHuntDuration + " minutes for extra points!";
+    }
+
+
+    @Override
+    public void bountyExpired(final BrewBounty pBrewBounty) {
+        final BrewBounty tActiveBounty = mBrew.getActiveBounty();
+        if (tActiveBounty != null && tActiveBounty.equals(pBrewBounty)) {
+            mSlackService.send("Bean bounty started by " + tActiveBounty.startedBy() + " has expired :(");
         }
     }
 
-    public String onStatsRequest() {
 
-        StringBuilder tStringBuilder = new StringBuilder("```");
+    public String onStatsRequest(final String pSlackUser) {
 
-        tStringBuilder.append("Brews today: ").append(getTodaysBrewCount()).append("\n");
-        tStringBuilder.append("Brews yesterday: ").append(getYesterdaysBrewCount()).append("\n");
-        tStringBuilder.append("Average brews/day this month: ").append(averageThisMonth()).append("  (today excluded)\n");
-        tStringBuilder.append("Average brews/day previous month: ").append(averagePreviousMonth()).append("\n");
-        tStringBuilder.append("Leader board:\n");
-        tStringBuilder.append(String.format("%-10s %-30s %-5s\n", "Rating", "Brewer", "Brews"));
-        tStringBuilder.append("------------------------------------------------\n");
+        StringBuilder tStrBuilder = new StringBuilder("```");
 
-        final int[] tScore = {1};
+        tStrBuilder.append(String.format("Brews today: %d, yesterday: %d\n", getTodaysBrewCount(), getYesterdaysBrewCount()));
+        tStrBuilder.append(String.format("Average brews/day this month: %f (today excluded)\n", averageThisMonth()));
+        tStrBuilder.append(String.format("Average brews/day previous month: %f\n", averagePreviousMonth()));
+        tStrBuilder.append(String.format("%-10s %-20s %-5s\n", "Rating", "Brewer", "Brews"));
+        tStrBuilder.append("------------------------------------------------\n");
 
-        mBrewerService.getBrewersSortedByBrewCount().forEach(pBrewer -> {
-            if (tScore[0] == 1) {
-                tStringBuilder.append(String.format("%-10s %-30s %-5s %-10s\n", "" + tScore[0] + ".", pBrewer.getSlackUser(), pBrewer.getBrews(), "<-- " + cMasterTitle + "!"));
+        final Brewer tStatBrewer = mBrewerService.getBrewer(pSlackUser);
+        List<Brewer> tBrewers = mBrewerService.getBrewersSortedByBrewCount();
+        Brewer tBrewMaster = mBrewerService.getBrewMaster();
+
+        int tStatLimit = 15;
+
+        final int tBrewerIndex = tBrewers.indexOf(tStatBrewer);
+        boolean outOfLimit = false;
+        if (tBrewerIndex > tStatLimit - 1) {
+            //tBrewers.add(tStatLimit - 1, tStatBrewer);
+            outOfLimit = true;
+        }
+        int i = 0;
+        if(tBrewMaster != null) {
+            tStrBuilder.append(String.format("%-10s %-20s %-5s %-10s\n",
+                    (i + 1) + ".", tBrewMaster.getSlackUser(), tBrewMaster.getBrews(), "<-- " + cMasterTitle + "!" ));
+            i++;
+        }
+
+        for(; i < tStatLimit - (outOfLimit ? 1 : 0); i++) {
+            Brewer tBrewer = tBrewers.get(i);
+            tStrBuilder.append(String.format("%-10s %-20s %-5s\n",
+                    (i + 1) + ".", tBrewer.getSlackUser(), tBrewer.getBrews()));
+        }
+
+        if(outOfLimit) {
+            tStrBuilder.append(String.format("...\n%-10s %-20s %-5s\n",
+                    (tBrewerIndex + 1) + ".", tStatBrewer.getSlackUser(), tStatBrewer.getBrews()));
+        }
+        /*
+        tBrewers.stream().limit(tStatLimit).forEach(pB -> {
+            if (tBrewerIndex > tStatLimit - 1 && pB.equals(tBrewer)) {
+                tStrBuilder.append("...\n");
+                tStrBuilder.append(String.format("%-10s %-20s %-5s %-10s\n",
+                        (tBrewerIndex + 1) + ".", pB.getSlackUser(), pB.getBrews(), pB.isBrewMaster() ? "<-- " + cMasterTitle + "!" : ""));
             } else {
-                tStringBuilder.append(String.format("%-10s %-30s %-5s\n", "" + tScore[0] + ".", pBrewer.getSlackUser(), pBrewer.getBrews()));
+                tStrBuilder.append(String.format("%-10s %-20s %-5s %-10s\n",
+                        (tBrewers.indexOf(pB) + 1) + ".", pB.getSlackUser(), pB.getBrews(), pB.isBrewMaster() ? "<-- " + cMasterTitle + "!" : ""));
             }
-            tScore[0]++;
-        });
 
-        tStringBuilder.append("```");
-        return tStringBuilder.toString();
+        });*/
+
+        tStrBuilder.append("```");
+        return tStrBuilder.toString();
     }
-
-
 
     private void updateTodaysBrewCount() {
         LocalDate tToday = LocalDate.now();
@@ -263,14 +330,13 @@ public class CoffeeSlacker {
 
     private double averagePreviousMonth() {
         LocalDate tQueryDay = LocalDate.now().minusMonths(1);
-        return averageBrewPerMonth(tQueryDay.getYear(), tQueryDay.getMonth(), tQueryDay.getDayOfMonth());
+        return averageBrewPerMonth(tQueryDay.getYear(), tQueryDay.getMonth(), -1);
     }
 
 
     private double averageBrewPerMonth(int pYear, Month pMonth, int day) {
         final LocalDate tDate = LocalDate.of(pYear, pMonth, day == -1 ? 1 : day);
         final List<BrewStat> tAllBrewStats = mBrewStatService.getAllBrewStats();
-
 
         final Stream<BrewStat> tStatStreamForMonth = tAllBrewStats.stream()
                 .filter(stat -> ((day == -1 || stat.getDate().getDayOfMonth() != tDate.getDayOfMonth()) &&
@@ -280,5 +346,41 @@ public class CoffeeSlacker {
         OptionalDouble tBrewAverageForMonth = tStatStreamForMonth
                 .mapToInt(BrewStat::getBrews).average();
         return tBrewAverageForMonth.isPresent() ? tBrewAverageForMonth.getAsDouble() : 0;
+    }
+
+
+    private void debugConfig() {
+        mChannelDelayAfterCompletedBrew = 8;
+        mChannelDelayAfterCompletedBrewUnit = TimeUnit.SECONDS;
+        mMsgDelayAfterCompletedBrew = 4;
+        mMsgDelayAfterCompletedBrewUnit = TimeUnit.SECONDS;
+        mBountyHuntDuration = 30;
+        mBountyHuntDurationUnit = TimeUnit.SECONDS;
+        mBrewExpectedCompletionTime = 30;
+        mBrewExpectedCompletionUnit = ChronoUnit.SECONDS;
+    }
+
+    private void normalConfig() {
+        mChannelDelayAfterCompletedBrew = 70;
+        mChannelDelayAfterCompletedBrewUnit = TimeUnit.SECONDS;
+        mMsgDelayAfterCompletedBrew = 50;
+        mMsgDelayAfterCompletedBrewUnit = TimeUnit.SECONDS;
+        mBountyHuntDuration = 15;
+        mBountyHuntDurationUnit = TimeUnit.MINUTES;
+        mBrewExpectedCompletionTime = 2;
+        mBrewExpectedCompletionUnit = ChronoUnit.MINUTES;
+    }
+
+    void toggleDebug() {
+        mDebugMode = !mDebugMode;
+        mSlackService.toggleDebugMode();
+
+        if (mDebugMode) {
+            debugConfig();
+        } else {
+            normalConfig();
+        }
+        mBrew.configDelayThreshold(mBrewExpectedCompletionTime, mBrewExpectedCompletionUnit);
+        mBrew.configBountyDuration(mBountyHuntDuration, mBountyHuntDurationUnit);
     }
 }

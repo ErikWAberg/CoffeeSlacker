@@ -1,7 +1,9 @@
 package coffeeslacker.brewer;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
+@Document
 public class Brewer implements Comparable {
 
     @Id
@@ -10,11 +12,13 @@ public class Brewer implements Comparable {
     private String rfid;
     private String slackUser;
     private int brews;
+    //private boolean brewMaster;
 
-    public Brewer(String rfid, String slackUser, int brews) {
+    public Brewer(String rfid, String slackUser, int brews) { //, boolean brewMaster) {
         this.rfid = rfid;
         this.slackUser = slackUser;
         this.brews = brews;
+        //this.brewMaster = brewMaster;
     }
 
     public String getRfid() {
@@ -29,12 +33,15 @@ public class Brewer implements Comparable {
         return brews;
     }
 
-    public void incrementBrews() {
-        brews++;
+    public void adjustBrews(int amount) {
+        brews += amount;
+        if(brews < 0) {
+            brews = 0;
+        }
     }
 
     public boolean isBetterThan(final Brewer pBrewer) {
-        return this.compareTo(pBrewer) > 0;
+        return pBrewer == null || this.compareTo(pBrewer) > 0;
     }
 
     @Override
@@ -65,12 +72,19 @@ public class Brewer implements Comparable {
                 ", brews=" + brews +
                 '}';
     }
+/*
+    public boolean isBrewMaster() {
+        return brewMaster;
+    }
 
+    public void setBrewMaster(final boolean pBrewMaster) {
+        brewMaster = pBrewMaster;
+    }
     public void update(final String pSlackUser) {
         slackUser = pSlackUser;
     }
-
-    public void decrementBrews() {
-        if(brews > 0) brews--;
+*/
+    public void setRfid(final String pRfid) {
+        rfid = pRfid;
     }
 }

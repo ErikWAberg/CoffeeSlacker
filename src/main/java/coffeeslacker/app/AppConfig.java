@@ -1,7 +1,7 @@
 package coffeeslacker.app;
 
 import coffeeslacker.slack.SlackService;
-import org.springframework.beans.factory.annotation.Autowired;
+import in.ashwanthkumar.slack.webhook.Slack;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,7 +13,7 @@ import java.util.concurrent.Executor;
 
 @Configuration
 @PropertySource("classpath:application.properties")
-public class AppConfig extends AsyncConfigurerSupport {
+public class AppConfig {
 
     @Value(value="${slack.webHook}")
     String mSlackWebHook;
@@ -24,29 +24,32 @@ public class AppConfig extends AsyncConfigurerSupport {
     @Value(value="${slack.channel}")
     String mSlackChannel;
 
-    @Value(value="${slack.debugUser}")
-    String mDebugUser;
+    @Value(value="${slack.debug.webHook}")
+    String mSlackDebugWebHook;
+
+    @Value(value="${slack.debug.channel}")
+    String mSlackDebugChannel;
+
+    @Value(value="${slack.debug.token}")
+    String mSlackDebugToken;
+
+    @Value(value="${slack.debug.user}")
+    String mSlackDebugUser;
+
+    private final String cDisplayName = "bean-sniffer";
+    private final String cIcon = ":coffee:";
+
+    private SlackService debugSlackService() {
+        if(mSlackDebugChannel != null && mSlackDebugToken != null && mSlackDebugWebHook != null && mSlackDebugUser != null) {
+            return new SlackService(mSlackDebugWebHook, mSlackDebugToken, mSlackDebugChannel, cDisplayName, cIcon, null);
+        }
+        return null;
+    }
 
     @Bean
     public SlackService slackService() {
-        String tWebHook = mSlackWebHook;
-        String tSlackToken = mSlackToken;
-        String tSlackChannelName = mSlackChannel;
-        String tDisplayName = "bean-sniffer";
-        String tIcon = ":coffee:";
-        return new SlackService(tWebHook, tSlackToken, tSlackChannelName, tDisplayName, tIcon, mDebugUser);
+        final SlackService tSlackService = new SlackService(mSlackWebHook, mSlackToken, mSlackChannel, cDisplayName, cIcon, debugSlackService());
+        return tSlackService;
     }
-
-    @Override
-    public Executor getAsyncExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(5);
-        executor.setMaxPoolSize(10);
-        executor.setQueueCapacity(500);
-        executor.setThreadNamePrefix("BrewExecutor-");
-        executor.initialize();
-        return executor;
-    }
-
     
 }

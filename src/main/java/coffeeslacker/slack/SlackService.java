@@ -18,37 +18,43 @@ public class SlackService {
     private final String cSlackChannelName;
     private final String cBotDisplayName;
     private final String cIcon;
-    private final String mDebugUser;
 
     private Slack mSlack;
+    private SlackService mDebugService;
+    private String mDebugUser;
     private boolean mDebugMode = false;
 
-    public SlackService(final String pWebHook, final String pSlackToken, final String pSlackChannelName, final String pDisplayName, final String pIcon, final String pDebugUser) {
+    public SlackService(final String pWebHook, final String pSlackToken, final String pSlackChannelName, final String pDisplayName, final String pIcon, SlackService pDebugService) {
         cWebHook = pWebHook;
         cSlackToken = pSlackToken;
         cSlackChannelName = pSlackChannelName;
         cBotDisplayName = pDisplayName;
         cIcon = pIcon;
-        mDebugUser = pDebugUser;
 
         mSlack = new Slack(pWebHook)
                 .icon(pIcon)
                 .sendToChannel(pSlackChannelName)
                 .displayName(pDisplayName);
+        mDebugService = pDebugService;
     }
 
     public void toggleDebugMode() {
-        mDebugMode = !mDebugMode;
-        sendToUser(mDebugUser, new SlackMessage("Bleep, bloop! Debug mode is " + (mDebugMode ? "on" : "off")));
+        if(mDebugService != null) {
+            mDebugMode = !mDebugMode;
+            if(mDebugMode) {
+                sendToUser(mDebugUser, "Bleep, bloop! Debug mode is on");
+            } else {
+                sendToUser(mDebugUser, "Bleep, bloop! Debug mode is off");
+            }
+        }
     }
 
-
-    public synchronized void sendToUser(String pUserId, SlackMessage pSlackMessage) {
+    public synchronized void sendToUser(String pUserId, String pSlackMessage) {
         try {
             if(mDebugMode) {
-                mSlack.sendToUser(mDebugUser).push(pSlackMessage);
+                mDebugService.sendToUser(mDebugUser, pSlackMessage + " (debug: was intended for " + pUserId + ")");
             } else {
-                mSlack.sendToUser(pUserId).push(pSlackMessage);
+                mSlack.sendToUser(pUserId).push(new SlackMessage(pSlackMessage));
             }
 
         } catch(IOException e) {
@@ -56,13 +62,13 @@ public class SlackService {
         }
     }
 
-    public synchronized void send(SlackMessage pSlackMessage) {
+    public synchronized void send(String pSlackMessage) {
         try {
 
             if(mDebugMode) {
-                sendToUser(mDebugUser, pSlackMessage);
+                mDebugService.send(pSlackMessage);
             } else {
-                mSlack.sendToChannel(cSlackChannelName).push(pSlackMessage);
+                mSlack.sendToChannel(cSlackChannelName).push(new SlackMessage(pSlackMessage));
             }
         } catch(IOException e) {
             cLogger.error("Can't send message to slack! " + pSlackMessage, e);

@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,15 +23,14 @@ public class BrewStatService {
         BrewStat tBrewStat = mBrewStatRepository.findByDate(pDate);
         if(tBrewStat == null) {
             tBrewStat = new BrewStat(pDate, 0);
-            mBrewStatRepository.save(tBrewStat);
+            return mBrewStatRepository.save(tBrewStat);
         }
         return tBrewStat;
     }
 
     public BrewStat incrementBrews(BrewStat pBrewStat) {
         pBrewStat.incrementBrews();
-        mBrewStatRepository.save(pBrewStat);
-        return pBrewStat;
+        return mBrewStatRepository.save(pBrewStat);
     }
 
     public BrewStat getTopBrewStat() {

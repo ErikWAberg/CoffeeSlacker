@@ -34,22 +34,24 @@ public class SlackController {
                              @RequestParam(name="trigger_word", required = false) String trigger_word
                             ) throws ExecutionException, InterruptedException {
 
-        SlackNotification pNotification = new SlackNotification(team_id, token, team_domain, channel_id, channel_name, timestamp, user_id, user_name, text, trigger_word);
+        //SlackNotification pNotification = new SlackNotification(team_id, token, team_domain, channel_id, channel_name, timestamp, user_id, user_name, text, trigger_word);
 
-        cLogger.info("Slack sniffer: " + pNotification.getTrigger_word()+ ", " + pNotification.getUser_id() + ", " + pNotification.getUser_name() + ", " + pNotification.getText());
-        cLogger.info(pNotification.toString());
-        String tTriggerWord = pNotification.getTrigger_word();
+        cLogger.info("Slack sniffer: " + user_name + ", " + text);
         String tResponse = "";
 
-        switch (tTriggerWord) {
+        switch (text) {
             case "!claim":
-                mCoffeeSlacker.onClaimRequest(pNotification);
+                mCoffeeSlacker.onClaimRequest(user_name);
                 break;
             case "!stats":
-                tResponse = mCoffeeSlacker.onStatsRequest();
+                tResponse = mCoffeeSlacker.onStatsRequest(user_name);
                 break;
             case "!bounty":
                 tResponse = mCoffeeSlacker.onBountyRequest(user_name);
+                break;
+            case "!help":
+                tResponse = "```!claim to claim a brew.\n!stats to view statistics & top 15 brewers.\n!bounty to give one of your points to" +
+                        "the person that claims a brew within the next 15 minutes.```";
                 break;
         }
 

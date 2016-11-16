@@ -1,12 +1,12 @@
 #include <ESP8266WiFi.h>
 #include "light_sensor.h"
 #include "http.h"
+#include "secret.h"
 
 #define LED_RED 0 //RED
 #define LED_BLUE 2 //BLUE
 
-#define SSID_NAME "secret"
-#define SSID_PASS "secret"
+
 
 
 void alert_on(void) {
@@ -57,15 +57,40 @@ void alert(bool alert) {
   }
 }
 
+bool waitForHigh = true;
+int THRESH = 50;
+
 void loop() {
 
   delay(1000);
 
   if (WiFi.status() == WL_CONNECTED) {
     int lux = light_sensor_read();
-    digitalWrite(LED_BLUE, LOW);
-    alert(http_post(lux));
-    digitalWrite(LED_BLUE, HIGH);
+    Serial.println(lux);
+    if(waitForHigh) {
+      if(lux > THRESH) {
+        digitalWrite(LED_BLUE, LOW);
+        if(http_post(lux) == 200) {
+          waitForHigh = false;
+          alert_off();
+        } else {
+          alert_on();
+        }
+        digitalWrite(LED_BLUE, HIGH);
+      }
+    } else {
+      if(lux < THRESH) {
+        digitalWrite(LED_BLUE, LOW);
+        if(http_post(lux) == 200) {
+          waitForHigh = true;
+          alert_off();
+        } else {
+          alert_on();
+        }
+        digitalWrite(LED_BLUE, HIGH);
+      }
+    }
+
   } else {
     alert_on();
     wifi_init();
