@@ -175,7 +175,7 @@ public class CoffeeSlacker implements BrewBountyListener {
     private void checkNeverEndingBrew(LocalTime pBrewStartTime, String pSlackMessage) {
         mScheduledExecutorService.schedule(() -> {
             if (mBrew.isBrewing() && mBrew.getStartTime().equals(pBrewStartTime)) {
-                mSlackService.send(pSlackMessage);
+                mSlackService.send(pSlackMessage + "... or brew got canceled prematurely...");
                 mBrew.reset();
                 cLogger.info("Brew got stuck?");
             }
@@ -190,7 +190,7 @@ public class CoffeeSlacker implements BrewBountyListener {
                 mBrew.startBrew();
                 checkNeverEndingBrew(mBrew.getStartTime(), cBrewCompleteChannelMsg);
                 mSlackService.send("Beans injected, brew initialized!");
-                updateTodaysBrewCount();
+                mBrewStatService.incrementTodaysBrews();
 
             } else if (tLux < (int) pSensor.getLowerThreshold() && mBrew.isBrewing()) {
 
@@ -268,7 +268,7 @@ public class CoffeeSlacker implements BrewBountyListener {
         List<Brewer> tBrewers = mBrewerService.getBrewersSortedByBrewCount();
         Brewer tBrewMaster = mBrewerService.getBrewMaster();
 
-        int tStatLimit = 15;
+        int tStatLimit = 15 > tBrewers.size() ? tBrewers.size() : 15;
 
         final int tBrewerIndex = tBrewers.indexOf(tStatBrewer);
         boolean outOfLimit = false;
@@ -297,12 +297,6 @@ public class CoffeeSlacker implements BrewBountyListener {
         return tStrBuilder.toString();
     }
 
-    private void updateTodaysBrewCount() {
-        LocalDate tToday = LocalDate.now();
-        BrewStat tBrewStat = mBrewStatService.getBrewStatByDate(tToday);
-        tBrewStat.incrementBrews();
-        mBrewStatService.save(tBrewStat);
-    }
 
     private int getYesterdaysBrewCount() {
         LocalDate tToday = LocalDate.now();
@@ -384,5 +378,13 @@ public class CoffeeSlacker implements BrewBountyListener {
         }
         mBrew.configDelayThreshold(mBrewExpectedCompletionTime, mBrewExpectedCompletionUnit);
         mBrew.configBountyDuration(mBountyHuntDuration, mBountyHuntDurationUnit);
+    }
+
+    public void deleteEverything() {
+        if(mDebugMode) {
+            mBrewStatService.deleteEverything();
+            mBrewerService.deleteEverything();
+            mSensorService.deleteEverything();
+        }
     }
 }

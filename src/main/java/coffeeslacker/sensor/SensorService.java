@@ -19,12 +19,18 @@ public class SensorService {
         mSensorRepository = pSensorRepository;
     }
 
+
     @PostConstruct
-    public void loadSensors() throws IOException {
+    public void postConstruct() {
+
+    }
+
+    public void deleteEverything() {
         mSensorRepository.deleteAll();
         registerSensor(11, 20.0, 50.0, "LIGHT", "Köket");
         registerSensor(12, 0.0, 0.0, "RFID", "Köket");
     }
+
 
     public Sensor registerSensor(int pSensorId, double pLowerThreshold, double pUpperThreshold, String pSensorType, String pLocation) {
         SensorType tSensorType = SensorType.getSensorType(pSensorType);

@@ -19,6 +19,16 @@ public class BrewStatService {
         mBrewStatRepository = pBrewStatRepository;
     }
 
+    @PostConstruct
+    public void postConstruct() {
+
+    }
+
+    public void deleteEverything() {
+        mBrewStatRepository.deleteAll();
+    }
+
+
     public BrewStat getBrewStatByDate(LocalDate pDate) {
         BrewStat tBrewStat = mBrewStatRepository.findByDate(pDate);
         if(tBrewStat == null) {
@@ -47,5 +57,9 @@ public class BrewStatService {
     }
 
 
-
+    public void incrementTodaysBrews() {
+        final BrewStat tBrewStatByDate = getBrewStatByDate(LocalDate.now());
+        tBrewStatByDate.incrementBrews();
+        save(tBrewStatByDate);
+    }
 }

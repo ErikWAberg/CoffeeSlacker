@@ -22,4 +22,8 @@ public class DebugController {
     }
 
 
+    @RequestMapping(value = "/blyat", method = RequestMethod.GET)
+    public void deleteEverything() {
+        mCoffeeSlacker.deleteEverything();
+    }
 }

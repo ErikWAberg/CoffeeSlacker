@@ -17,10 +17,14 @@ public class BrewerService {
         mBrewerRepository = pBrewerRepository;
     }
 
-    int mInitialBrewerCount = 0;
+    private int mInitialBrewerCount = 0;
 
     @PostConstruct
-    public void asd() {
+    public void postConstruct() {
+
+    }
+
+    public void deleteEverything() {
         mBrewerRepository.deleteAll();
     }
 

@@ -39,7 +39,7 @@ public class SlackService {
     }
 
     public void toggleDebugMode() {
-        if(mDebugService != null) {
+        if(mDebugService != null && mDebugUser != null) {
             mDebugMode = !mDebugMode;
             if(mDebugMode) {
                 sendToUser(mDebugUser, "Bleep, bloop! Debug mode is on");

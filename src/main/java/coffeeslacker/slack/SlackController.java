@@ -34,7 +34,6 @@ public class SlackController {
                              @RequestParam(name="trigger_word", required = false) String trigger_word
                             ) throws ExecutionException, InterruptedException {
 
-        //SlackNotification pNotification = new SlackNotification(team_id, token, team_domain, channel_id, channel_name, timestamp, user_id, user_name, text, trigger_word);
 
         cLogger.info("Slack sniffer: " + user_name + ", " + text);
         String tResponse = "";
