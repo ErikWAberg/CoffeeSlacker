@@ -61,7 +61,6 @@ public class CoffeeSlacker implements BrewBountyListener {
     }
 
 
-
     public synchronized void onSensorReport(final String pValue, final int pSensorId) {
         final Sensor tSensor = mSensorService.getSensorById(pSensorId);
         if (tSensor != null) {
@@ -149,7 +148,7 @@ public class CoffeeSlacker implements BrewBountyListener {
         mBrewerService.save(pClaimee);
         final Brewer tNewBrewMaster = mBrewerService.getBrewMaster();
 
-        if(tNewBrewMaster != null && tNewBrewMaster.equals(pClaimee) && !tNewBrewMaster.equals(tBrewMaster) || mBrewerService.getBrewerCount() == 1 ) {
+        if (tNewBrewMaster != null && tNewBrewMaster.equals(pClaimee) && !tNewBrewMaster.equals(tBrewMaster) || mBrewerService.getBrewerCount() == 1) {
             response += "\n*" + pClaimee.getSlackUser() + " is now the " + cMasterTitle + "!*";
         }
 
@@ -159,7 +158,7 @@ public class CoffeeSlacker implements BrewBountyListener {
 
     private void brewCompleteNotifyLeaders(List<String> pSlackUsers, String pSlackMessage) {
         mScheduledExecutorService.schedule(() -> {
-            if(mBrew.isWaitingForDrip()) {
+            if (mBrew.isWaitingForDrip()) {
                 pSlackUsers.forEach(pUser -> mSlackService.sendToUser(pUser, pSlackMessage));
             }
 
@@ -168,7 +167,7 @@ public class CoffeeSlacker implements BrewBountyListener {
 
     private void brewCompleteNotifyChannel(String pSlackMessage) {
         mScheduledExecutorService.schedule(() -> {
-            if(mBrew.isWaitingForDrip()) {
+            if (mBrew.isWaitingForDrip()) {
                 mSlackService.send(pSlackMessage);
                 mBrew.reset();
             }
@@ -268,19 +267,19 @@ public class CoffeeSlacker implements BrewBountyListener {
             outOfLimit = true;
         }
         int i = 0;
-        if(tBrewMaster != null) {
+        if (tBrewMaster != null) {
             tStrBuilder.append(String.format("%-10s %-20s %-5s %-10s\n",
-                    (i + 1) + ".", tBrewMaster.getSlackUser(), tBrewMaster.getBrews(), "<-- " + cMasterTitle + "!" ));
+                    (i + 1) + ".", tBrewMaster.getSlackUser(), tBrewMaster.getBrews(), "<-- " + cMasterTitle + "!"));
             i++;
         }
 
-        for(; i < tStatLimit - (outOfLimit ? 1 : 0); i++) {
+        for (; i < tStatLimit - (outOfLimit ? 1 : 0); i++) {
             Brewer tBrewer = tBrewers.get(i);
             tStrBuilder.append(String.format("%-10s %-20s %-5s\n",
                     (i + 1) + ".", tBrewer.getSlackUser(), tBrewer.getBrews()));
         }
 
-        if(outOfLimit) {
+        if (outOfLimit) {
             tStrBuilder.append(String.format("...\n%-10s %-20s %-5s\n",
                     (tBrewerIndex + 1) + ".", tStatBrewer.getSlackUser(), tStatBrewer.getBrews()));
         }
@@ -312,29 +311,35 @@ public class CoffeeSlacker implements BrewBountyListener {
     }
 
     private double averageThisMonth() {
-        LocalDate tToday = LocalDate.now();
-        return averageBrewPerMonth(tToday.getYear(), tToday.getMonth(), tToday.getDayOfMonth());
-    }
-
-    private double averagePreviousMonth() {
-        LocalDate tQueryDay = LocalDate.now().minusMonths(1);
-        return averageBrewPerMonth(tQueryDay.getYear(), tQueryDay.getMonth(), -1);
-    }
-
-
-    private double averageBrewPerMonth(int pYear, Month pMonth, int day) {
-        final LocalDate tDate = LocalDate.of(pYear, pMonth, day == -1 ? 1 : day);
+        LocalDate tDate = LocalDate.now();
         final List<BrewStat> tAllBrewStats = mBrewStatService.getAllBrewStats();
 
         final Stream<BrewStat> tStatStreamForMonth = tAllBrewStats.stream()
-                .filter(stat -> ((day == -1 || stat.getDate().getDayOfMonth() != tDate.getDayOfMonth()) &&
+                .filter(stat ->
+                        stat.getDate().getDayOfMonth() != tDate.getDayOfMonth() &&
+                                stat.getDate().getMonth() == tDate.getMonth() &&
+                                stat.getDate().getYear() == tDate.getYear());
+
+        OptionalDouble tBrewAverageForMonth = tStatStreamForMonth
+                .mapToInt(BrewStat::getBrews).average();
+        return tBrewAverageForMonth.isPresent() ? tBrewAverageForMonth.getAsDouble() : 0;
+
+    }
+
+    private double averagePreviousMonth() {
+        LocalDate tDate = LocalDate.now();
+        final List<BrewStat> tAllBrewStats = mBrewStatService.getAllBrewStats();
+
+        final Stream<BrewStat> tStatStreamForMonth = tAllBrewStats.stream()
+                .filter(stat ->
                         stat.getDate().getMonth() == tDate.getMonth() &&
-                        stat.getDate().getYear() == tDate.getYear()));
+                                stat.getDate().getYear() == tDate.getYear());
 
         OptionalDouble tBrewAverageForMonth = tStatStreamForMonth
                 .mapToInt(BrewStat::getBrews).average();
         return tBrewAverageForMonth.isPresent() ? tBrewAverageForMonth.getAsDouble() : 0;
     }
+
 
 
     private void debugConfig() {
