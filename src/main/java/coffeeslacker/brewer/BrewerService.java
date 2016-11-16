@@ -17,6 +17,7 @@ public class BrewerService {
         mBrewerRepository = pBrewerRepository;
     }
 
+    int mInitialBrewerCount = 0;
 
     @PostConstruct
     public void asd() {
@@ -73,4 +74,11 @@ public class BrewerService {
         return mBrewerRepository.findByBrews(tBrewer.getBrews());
     }
 
+    public int getBrewerCount() {
+        if(mInitialBrewerCount == 0) {
+            final List<Brewer> tAll = mBrewerRepository.findAll();
+            mInitialBrewerCount = tAll.size();
+        }
+        return mInitialBrewerCount;
+    }
 }

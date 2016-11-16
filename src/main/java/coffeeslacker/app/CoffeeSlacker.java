@@ -149,7 +149,7 @@ public class CoffeeSlacker implements BrewBountyListener {
 
         final Brewer tBrewMaster = mBrewerService.getBrewMaster();
 
-        if (tBrewMaster == null || (!pClaimee.equals(tBrewMaster) && pClaimee.isBetterThan(tBrewMaster))) {
+        if (tBrewMaster != null && (!pClaimee.equals(tBrewMaster) && pClaimee.isBetterThan(tBrewMaster)) || mBrewerService.getBrewerCount() == 1) {
             response += "\n*" + pClaimee.getSlackUser() + " is now the " + cMasterTitle + "!*";
         }
         return response;
