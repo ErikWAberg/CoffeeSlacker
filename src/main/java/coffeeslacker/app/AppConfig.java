@@ -41,7 +41,8 @@ public class AppConfig {
 
     private SlackService debugSlackService() {
         if(mSlackDebugChannel != null && mSlackDebugToken != null && mSlackDebugWebHook != null && mSlackDebugUser != null) {
-            return new SlackService(mSlackDebugWebHook, mSlackDebugToken, mSlackDebugChannel, cDisplayName, cIcon, null);
+            final SlackService tDebugService = new SlackService(mSlackDebugWebHook, mSlackDebugToken, mSlackDebugChannel, cDisplayName, cIcon, null);
+            tDebugService.setDebugUser(mSlackDebugUser);
         }
         return null;
     }

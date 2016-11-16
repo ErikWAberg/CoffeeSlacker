@@ -87,5 +87,7 @@ public class SlackService {
     }
 
 
-
+    public void setDebugUser(final String pSlackDebugUser) {
+        mDebugUser = pSlackDebugUser;
+    }
 }
