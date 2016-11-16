@@ -22,11 +22,6 @@ public class BrewerService {
     @PostConstruct
     public void asd() {
         mBrewerRepository.deleteAll();
-
-        for (int i = 0; i < 20; i++) {
-            Brewer tBrewer = new Brewer(null, "a" + i, 2);
-            mBrewerRepository.save(tBrewer);
-        }
     }
 
     public Brewer registerRfid(final String pSlackUser, final String pRfid) {

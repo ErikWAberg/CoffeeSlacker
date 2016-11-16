@@ -90,6 +90,10 @@ public class Brew implements BrewBountyListener {
         }
     }
 
+    public LocalTime getStartTime() {
+        return mStartTime;
+    }
+
     public boolean afterExpectedBrewTime() {
         return LocalTime.now().isAfter(mStartTime.plus(mDelayAmount, mDelayTimeUnit));
     }

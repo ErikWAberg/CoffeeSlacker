@@ -14,11 +14,6 @@ public class BrewStatService {
 
     private final BrewStatRepository mBrewStatRepository;
 
-    @PostConstruct
-    public void asd() {
-        mBrewStatRepository.deleteAll();
-    }
-
     @Autowired
     public BrewStatService(BrewStatRepository pBrewStatRepository) {
         mBrewStatRepository = pBrewStatRepository;

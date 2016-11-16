@@ -13,10 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.Month;
+import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
 import java.util.*;
@@ -30,6 +27,8 @@ public class CoffeeSlacker implements BrewBountyListener {
 
     private static final Logger cLogger = LoggerFactory.getLogger(CoffeeSlacker.class);
     private static final String cMasterTitle = "Master Elite Bean Injector";
+    private static final String cBrewCompleteChannelMsg = "*Brew complete*, först to kvarn!";
+
     private long mChannelDelayAfterCompletedBrew = 75;
     private TimeUnit mChannelDelayAfterCompletedBrewUnit = TimeUnit.SECONDS;
     private long mMsgDelayAfterCompletedBrew = 55;
@@ -57,7 +56,6 @@ public class CoffeeSlacker implements BrewBountyListener {
         mBrewStatService = pBrewStatService;
         mScheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
         normalConfig();
-        toggleDebug();
     }
 
 
@@ -174,13 +172,25 @@ public class CoffeeSlacker implements BrewBountyListener {
         }, mChannelDelayAfterCompletedBrew, mChannelDelayAfterCompletedBrewUnit);
     }
 
+    private void checkNeverEndingBrew(LocalTime pBrewStartTime, String pSlackMessage) {
+        mScheduledExecutorService.schedule(() -> {
+            if (mBrew.isBrewing() && mBrew.getStartTime().equals(pBrewStartTime)) {
+                mSlackService.send(pSlackMessage);
+                mBrew.reset();
+                cLogger.info("Brew got stuck?");
+            }
+        }, 8, TimeUnit.MINUTES);
+    }
+
     private void onLuxScan(String pLux, Sensor pSensor) {
         try {
             int tLux = Integer.parseInt(pLux);
 
             if (tLux > (int) pSensor.getUpperThreshold() && !mBrew.isBrewing()) {
                 mBrew.startBrew();
+                checkNeverEndingBrew(mBrew.getStartTime(), cBrewCompleteChannelMsg);
                 mSlackService.send("Beans injected, brew initialized!");
+                updateTodaysBrewCount();
 
             } else if (tLux < (int) pSensor.getLowerThreshold() && mBrew.isBrewing()) {
 
@@ -200,8 +210,7 @@ public class CoffeeSlacker implements BrewBountyListener {
                     }
 
                     brewCompleteNotifyLeaders(tPrivilegedUsers, "Psst! Brew is klar, but don't berätta för anyone!");
-                    brewCompleteNotifyChannel("*Brew complete*, först to kvarn!");
-                    updateTodaysBrewCount();
+                    brewCompleteNotifyChannel(cBrewCompleteChannelMsg);
 
                 } else {
                     cLogger.info("Got finished brew, but afterExpectedBrewTime: " + mBrew.afterExpectedBrewTime() + " waitingForDrip: " + mBrew.isWaitingForDrip());
@@ -240,7 +249,7 @@ public class CoffeeSlacker implements BrewBountyListener {
     public void bountyExpired(final BrewBounty pBrewBounty) {
         final BrewBounty tActiveBounty = mBrew.getActiveBounty();
         if (tActiveBounty != null && tActiveBounty.equals(pBrewBounty)) {
-            mSlackService.send("Bean bounty started by " + tActiveBounty.startedBy() + " has expired :(");
+            mSlackService.send("Bean bounty started by " + tActiveBounty.startedBy().getSlackUser() + " has expired :(");
         }
     }
 
