@@ -54,41 +54,19 @@ public class BrewerService {
     public Brewer save(Brewer pBrewer) {
         return mBrewerRepository.save(pBrewer);
     }
-    /*
-    public Brewer adjustBrews(Brewer pBrewer, int amount) {
-        Brewer tBrewer = mBrewerRepository.findBySlackUser(pSlackUser);
-        tBrewer.adjustBrews(amount);
-        return mBrewerRepository.save(tBrewer);
-    }*/
-/*
-    public void setBrewMaster(Brewer pNewBrewMaster) {
-        final Brewer tPrevBrewMaster = mBrewerRepository.findByBrewMaster(true);
-        if(tPrevBrewMaster != null) {
-            tPrevBrewMaster.setBrewMaster(false);
-            mBrewerRepository.save(tPrevBrewMaster);
-        }
 
-        if(pNewBrewMaster != null) {
-            pNewBrewMaster = getBrewer(pNewBrewMaster.getSlackUser());
-            pNewBrewMaster.setBrewMaster(true);
-            mBrewerRepository.save(pNewBrewMaster);
-        }
-    }*/
+    public List<Brewer> getBrewersSortedByBrewCount() {
+        return mBrewerRepository.findAll(new Sort(Sort.Direction.DESC, "brews").and(new Sort(Sort.Direction.DESC, "slackUser")));
+    }
 
     public Brewer getBrewMaster() {
-        //return mBrewerRepository.findByBrewMaster(true);
-        final List<Brewer> tNumTopBrewers = getTopBrewers();
-        if (tNumTopBrewers.size() == 1) {
-            return tNumTopBrewers.get(0);
+        final List<Brewer> tTopBrewers = getTopBrewers();
+
+        if (tTopBrewers.size() == 1) {
+            return tTopBrewers.get(0);
         }
         return null;
     }
-
-    public List<Brewer> getBrewersSortedByBrewCount() {
-        return mBrewerRepository.findAll(new Sort(Sort.Direction.DESC, "brews"));
-        //return mBrewerRepository.findAll(new Sort(Sort.Direction.DESC, "brewMaster").and(new Sort(Sort.Direction.DESC, "brews")));
-    }
-
 
     private List<Brewer> getTopBrewers() {
         Brewer tBrewer = mBrewerRepository.findFirstByOrderByBrewsDesc();

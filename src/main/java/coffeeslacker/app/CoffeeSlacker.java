@@ -264,7 +264,6 @@ public class CoffeeSlacker implements BrewBountyListener {
         final int tBrewerIndex = tBrewers.indexOf(tStatBrewer);
         boolean outOfLimit = false;
         if (tBrewerIndex > tStatLimit - 1) {
-            //tBrewers.add(tStatLimit - 1, tStatBrewer);
             outOfLimit = true;
         }
         int i = 0;
@@ -284,18 +283,6 @@ public class CoffeeSlacker implements BrewBountyListener {
             tStrBuilder.append(String.format("...\n%-10s %-20s %-5s\n",
                     (tBrewerIndex + 1) + ".", tStatBrewer.getSlackUser(), tStatBrewer.getBrews()));
         }
-        /*
-        tBrewers.stream().limit(tStatLimit).forEach(pB -> {
-            if (tBrewerIndex > tStatLimit - 1 && pB.equals(tBrewer)) {
-                tStrBuilder.append("...\n");
-                tStrBuilder.append(String.format("%-10s %-20s %-5s %-10s\n",
-                        (tBrewerIndex + 1) + ".", pB.getSlackUser(), pB.getBrews(), pB.isBrewMaster() ? "<-- " + cMasterTitle + "!" : ""));
-            } else {
-                tStrBuilder.append(String.format("%-10s %-20s %-5s %-10s\n",
-                        (tBrewers.indexOf(pB) + 1) + ".", pB.getSlackUser(), pB.getBrews(), pB.isBrewMaster() ? "<-- " + cMasterTitle + "!" : ""));
-            }
-
-        });*/
 
         tStrBuilder.append("```");
         return tStrBuilder.toString();
