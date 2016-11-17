@@ -277,7 +277,7 @@ public class CoffeeSlacker implements BrewBountyListener {
             outOfLimit = true;
         }
         int i = 0;
-        if (tBrewMaster != null) {
+        if (tBrewMaster != null && tBrewMaster.getBrews() > 0) {
             tStrBuilder.append(String.format("%-10s %-20s %-5s %-10s\n",
                     (i + 1) + ".", tBrewMaster.getSlackUser(), tBrewMaster.getBrews(), "<-- " + cMasterTitle + "!"));
             i++;
