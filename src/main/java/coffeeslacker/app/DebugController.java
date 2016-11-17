@@ -27,4 +27,6 @@ public class DebugController {
     public void deleteEverything(@RequestParam("asd") String asd) {
         mCoffeeSlacker.blyat(asd);
     }
+
+
 }

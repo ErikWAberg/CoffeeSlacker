@@ -171,7 +171,7 @@ public class CoffeeSlacker implements BrewBountyListener {
             }
         }, mChannelDelayAfterCompletedBrew, mChannelDelayAfterCompletedBrewUnit);
     }
-
+/*
     private void checkNeverEndingBrew(LocalTime pBrewStartTime, String pSlackMessage) {
         mScheduledExecutorService.schedule(() -> {
             if (mBrew.isBrewing() && mBrew.getStartTime().equals(pBrewStartTime)) {
@@ -181,6 +181,7 @@ public class CoffeeSlacker implements BrewBountyListener {
             }
         }, 8, TimeUnit.MINUTES);
     }
+*/
 
     private void onLuxScan(String pLux, Sensor pSensor) {
         try {
@@ -188,7 +189,7 @@ public class CoffeeSlacker implements BrewBountyListener {
 
             if (tLux > (int) pSensor.getUpperThreshold() && !mBrew.isBrewing()) {
                 mBrew.startBrew();
-                checkNeverEndingBrew(mBrew.getStartTime(), cBrewCompleteChannelMsg);
+                //checkNeverEndingBrew(mBrew.getStartTime(), cBrewCompleteChannelMsg);
                 mSlackService.send("Beans injected, brew initialized!");
                 mBrewStatService.incrementTodaysBrews();
 
