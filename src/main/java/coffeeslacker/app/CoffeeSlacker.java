@@ -56,7 +56,6 @@ public class CoffeeSlacker implements BrewBountyListener {
         mBrewStatService = pBrewStatService;
         mScheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
         normalConfig();
-        //toggleDebug();
     }
 
 
@@ -305,8 +304,7 @@ public class CoffeeSlacker implements BrewBountyListener {
         if (tToday.getDayOfWeek() == DayOfWeek.MONDAY) {
             tQueryDay = tQueryDay.minusDays(2);
         }
-        BrewStat tBrewStat = mBrewStatService.getBrewStatByDate(tQueryDay);
-        return tBrewStat.getBrews();
+        return mBrewStatService.getBrewStatByDate(tQueryDay).getBrews();
     }
 
     private int getTodaysBrewCount() {
@@ -315,33 +313,52 @@ public class CoffeeSlacker implements BrewBountyListener {
 
     private String stringifyStats(DoubleSummaryStatistics tStats) {
         if(tStats.getCount() > 0) {
-            return String.format("count: %d, avg: %.1f, min: %d, max: %d", tStats.getCount(), tStats.getAverage(), (int)tStats.getMin(), (int)tStats.getMax());
+            return String.format("brews: %d, brews/day: %.1f, min: %d, max: %d", (int)tStats.getSum(), tStats.getAverage(), (int)tStats.getMin(), (int)tStats.getMax());
         }
-        return String.format("count: %d, avg: %.1f, min: %d, max: %d", 0, 0f, 0, 0);
+        return String.format("brews: %d, brews/day: %.1f, min: %d, max: %d", 0, 0f, 0, 0);
     }
 
+    private Map.Entry<LocalDate, BrewStat[]> mThisMonthStats = null;
     private String averageThisMonth() {
         LocalDate tDate = LocalDate.now();
-        final List<BrewStat> tAllBrewStats = mBrewStatService.getAllBrewStats();
+        if(mThisMonthStats == null || !mThisMonthStats.getKey().equals(tDate.withDayOfMonth(1))) {
+             mThisMonthStats = new AbstractMap.SimpleEntry<>(tDate.withDayOfMonth(1), new BrewStat[31]);
+        }
 
-        DoubleSummaryStatistics tDoubleSummaryStatistics = tAllBrewStats.stream()
+        for(int tDay = 1; tDay <= tDate.getDayOfMonth(); tDay++) {
+            if(mThisMonthStats.getValue()[tDay] == null) {
+                mThisMonthStats.getValue()[tDay] = mBrewStatService.getBrewStatByDate(tDate.withDayOfMonth(tDay));
+            }
+        }
+        DoubleSummaryStatistics tDoubleSummaryStatistics = Arrays.stream(mThisMonthStats.getValue())
+                .filter(stat -> stat != null)
                 .filter(stat ->
-                                stat.getDate().getDayOfMonth() != tDate.getDayOfMonth() &&
-                                stat.getDate().getMonth() == tDate.getMonth() &&
-                                stat.getDate().getYear() == tDate.getYear()).mapToDouble(BrewStat::getBrews).summaryStatistics();
+                stat.getDate().getDayOfMonth() != tDate.getDayOfMonth() &&
+                        stat.getDate().getMonth() == tDate.getMonth() &&
+                        stat.getDate().getYear() == tDate.getYear())
+                .mapToDouble(BrewStat::getBrews).summaryStatistics();
+
         return stringifyStats(tDoubleSummaryStatistics);
 
     }
 
+    private Map.Entry<LocalDate, String> mPreviousMonthStats = null;
     private String averagePreviousMonth() {
-        LocalDate tDate = LocalDate.now().minusMonths(1);
-        final List<BrewStat> tAllBrewStats = mBrewStatService.getAllBrewStats();
+        LocalDate tDate = LocalDate.now().minusMonths(1).withDayOfMonth(1);
 
-        DoubleSummaryStatistics tDoubleSummaryStatistics = tAllBrewStats.stream()
+        if(mPreviousMonthStats != null && mPreviousMonthStats.getKey().equals(tDate)) {
+            return mPreviousMonthStats.getValue();
+        }
+
+        DoubleSummaryStatistics tDoubleSummaryStatistics = mBrewStatService.getAllBrewStats()
+                .stream()
                 .filter(stat ->
-                        stat.getDate().getMonth() == tDate.getMonth() &&
-                                stat.getDate().getYear() == tDate.getYear()).mapToDouble(BrewStat::getBrews).summaryStatistics();;
-        return stringifyStats(tDoubleSummaryStatistics);
+                                stat.getDate().getMonth() == tDate.getMonth() &&
+                                stat.getDate().getYear() == tDate.getYear())
+                .mapToDouble(BrewStat::getBrews).summaryStatistics();;
+        String tFormattedStats = stringifyStats(tDoubleSummaryStatistics);
+        mPreviousMonthStats = new AbstractMap.SimpleEntry<>(tDate, tFormattedStats);
+        return tFormattedStats;
     }
 
 
@@ -374,7 +391,7 @@ public class CoffeeSlacker implements BrewBountyListener {
 
         if (mDebugMode) {
             debugConfig();
-            for(int i = 0; i < 10; i++) {
+          /*  for(int i = 0; i < 10; i++) {
                 mBrewerService.deleteBrewer("debug" + i);
                 mBrewerService.getBrewer("debug" + i);
             }
@@ -389,7 +406,7 @@ public class CoffeeSlacker implements BrewBountyListener {
             for(int i = 0; i < 10; i++) {
                 mBrewStatService.save(new BrewStat(tLocalDate, tr.nextInt(10)));
                 tLocalDate = tLocalDate.plusDays(1);
-            }
+            } */
         } else {
             normalConfig();
             for(int i = 0; i < 10; i++) {
