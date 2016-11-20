@@ -4,10 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class SensorService {
@@ -34,13 +31,13 @@ public class SensorService {
 
     public Sensor registerSensor(int pSensorId, double pLowerThreshold, double pUpperThreshold, String pSensorType, String pLocation) {
         SensorType tSensorType = SensorType.getSensorType(pSensorType);
-        if(tSensorType == null) {
+        if (tSensorType == null) {
             return null; //TODO
         }
 
         Sensor tSensor = mSensorRepository.findBySensorId(pSensorId);
 
-        if(tSensor == null) {
+        if (tSensor == null) {
             tSensor = new Sensor(pSensorId, pLowerThreshold, pUpperThreshold, pSensorType, pLocation);
         } else {
             tSensor.update(pLowerThreshold, pUpperThreshold, pSensorType, pLocation);

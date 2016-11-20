@@ -28,7 +28,6 @@ public class SensorController {
 
     @RequestMapping(value = "/report", method = RequestMethod.POST)
     public void bySensorReport(@RequestParam("sensorValue") String pSensorValue, @RequestParam(name = "sensorId") int pSensorId) {
-        //cLogger.info("Received sensorValue: " + pSensorValue + " sensorId: " + pSensorId);
         mCoffeeSlacker.onSensorReport(pSensorValue, pSensorId);
     }
 
@@ -38,19 +37,18 @@ public class SensorController {
                                  @RequestParam("upperThreshold") double pUpperThreshold,
                                  @RequestParam("sensorType") String pSensorType,
                                  @RequestParam("location") String pLocation) {
-        cLogger.info("Register sensor: " + "sensorId: " +  pSensorId + " threshold: " + pLowerThreshold + " sensorType: " + pSensorType + " location: " + pLocation);
+        cLogger.info("Register sensor: " + "sensorId: " + pSensorId + " threshold: " + pLowerThreshold + " sensorType: " + pSensorType + " location: " + pLocation);
         return mSensorService.registerSensor(pSensorId, pLowerThreshold, pUpperThreshold, pSensorType, pLocation);
     }
 
 
-
     @RequestMapping(value = "/list", method = RequestMethod.GET)
-    public List<Sensor> getAllSensors()  {
+    public List<Sensor> getAllSensors() {
         return mSensorService.getAllSensors();
     }
 
     @RequestMapping(value = "/find", method = RequestMethod.GET)
-    public Sensor getSensorById(@RequestParam("sensorId") int pSensorId)  {
+    public Sensor getSensorById(@RequestParam("sensorId") int pSensorId) {
         cLogger.info("getSensorByName: sensorid= " + pSensorId + ": " + mSensorService.getSensorById(pSensorId));
         return mSensorService.getSensorById(pSensorId);
     }

@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -19,11 +18,6 @@ public class BrewStatService {
         mBrewStatRepository = pBrewStatRepository;
     }
 
-    @PostConstruct
-    public void postConstruct() {
-
-    }
-
     public void deleteEverything() {
         mBrewStatRepository.deleteAll();
     }
@@ -31,10 +25,10 @@ public class BrewStatService {
 
     public BrewStat getBrewStatByDate(LocalDate pDate) {
         BrewStat tBrewStat = mBrewStatRepository.findByDate(pDate);
-        if(tBrewStat == null) {
+        if (tBrewStat == null) {
             return new BrewStat(pDate, 0, 0);
         }
-        if(tBrewStat.getClaimed() == null) {
+        if (tBrewStat.getClaimed() == null) {
             tBrewStat.setClaimed(0);
         }
         return tBrewStat;

@@ -33,7 +33,7 @@ public class Brewer implements Comparable {
 
     public void adjustBrews(int amount) {
         brews += amount;
-        if(brews < 0) {
+        if (brews < 0) {
             brews = 0;
         }
     }
@@ -50,7 +50,7 @@ public class Brewer implements Comparable {
 
     @Override
     public int compareTo(final Object pOther) {
-        if(this.equals(pOther) || getClass() != pOther.getClass()) {
+        if (this.equals(pOther) || getClass() != pOther.getClass()) {
             return 0;
         }
 

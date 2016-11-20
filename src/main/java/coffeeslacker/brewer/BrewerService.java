@@ -74,7 +74,7 @@ public class BrewerService {
     }
 
     public int getBrewerCount() {
-        if(mInitialBrewerCount < 2) {
+        if (mInitialBrewerCount < 2) {
             final List<Brewer> tAll = mBrewerRepository.findAll();
             mInitialBrewerCount = tAll.size();
         }
@@ -83,7 +83,7 @@ public class BrewerService {
 
     public void deleteBrewer(final String pSlackUser) {
         Brewer tBrewer = mBrewerRepository.findBySlackUser(pSlackUser);
-        if(tBrewer != null) {
+        if (tBrewer != null) {
             mBrewerRepository.delete(tBrewer);
         }
     }

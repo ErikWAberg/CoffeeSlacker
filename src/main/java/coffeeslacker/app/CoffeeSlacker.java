@@ -13,7 +13,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.*;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
 import java.util.*;
@@ -58,13 +59,12 @@ public class CoffeeSlacker implements BrewBountyListener {
         mBrewStatService = pBrewStatService;
         mScheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
         normalConfig();
-        toggleDebug();
     }
 
 
     public String onBountyRequest(final String pSlackUser) {
         final String tBountyResp = veryBountyRequest(pSlackUser);
-        if(mDebugMode) {
+        if (mDebugMode) {
             mSlackService.send(tBountyResp);
             return "";
         }
@@ -73,7 +73,7 @@ public class CoffeeSlacker implements BrewBountyListener {
 
     public String onClaimRequest(String pSlackUser) {
         final String tClaimResp = veryBrewClaim(mBrewerService.getBrewer(pSlackUser));
-        if(mDebugMode) {
+        if (mDebugMode) {
             mSlackService.send(tClaimResp);
             return "";
         }
@@ -82,7 +82,7 @@ public class CoffeeSlacker implements BrewBountyListener {
 
     public String onStatsRequest(final String pSlackUser) {
         final String tStats = compileBrewStats(pSlackUser);
-        if(mDebugMode) {
+        if (mDebugMode) {
             mSlackService.send(tStats);
             return "";
         }
@@ -128,6 +128,7 @@ public class CoffeeSlacker implements BrewBountyListener {
     }
 
     private int mPrevLuxValue = -1;
+
     private void onLuxScan(String pLux, Sensor pSensor) {
         try {
             int tLux = Integer.parseInt(pLux);
@@ -165,7 +166,7 @@ public class CoffeeSlacker implements BrewBountyListener {
 
                 }
             }
-            if(tLux != mPrevLuxValue) {
+            if (tLux != mPrevLuxValue) {
                 mPrevLuxValue = tLux;
                 cLogger.info("Got lux: " + pLux + ", brewing: " + mBrew.inState(BREWING) + ", afterExpectedBrewTime: " + mBrew.afterExpectedBrewTime() + ", waitingForDrip: " + mBrew.inState(WAITFORDRIP) + ", waitingForBrew: " + mBrew.inState(WAITFORBREW));
             }
@@ -174,7 +175,6 @@ public class CoffeeSlacker implements BrewBountyListener {
             cLogger.error("onLuxScan Failed Integer.parse on: " + pLux);
         }
     }
-
 
 
     private String veryBountyRequest(String pSlackUser) {
@@ -206,11 +206,11 @@ public class CoffeeSlacker implements BrewBountyListener {
             return "Brew has already been claimed.";
         }
 
-        if(!mBrew.hasBrewedToday()) {
+        if (!mBrew.hasBrewedToday()) {
             return "No brew has been started today";
         }
 
-        if(!mBrew.withinClaimableTime()) {
+        if (!mBrew.withinClaimableTime()) {
             return "Brew must be claimed within 20 minutes";
         }
         mBrew.claim(pClaimee);
@@ -438,7 +438,7 @@ public class CoffeeSlacker implements BrewBountyListener {
             debugConfig();
             final Random tr = new Random();
 
-            for(int i = 0; i < 16; i++) {
+            for (int i = 0; i < 16; i++) {
                 mBrewerService.deleteBrewer("debug" + i);
                 Brewer tBrewer = mBrewerService.getBrewer("debug" + i);
                 int tBrewCount = tr.nextInt(10);
@@ -447,14 +447,14 @@ public class CoffeeSlacker implements BrewBountyListener {
                 mBrewerService.save(tBrewer);
             }
 
-            LocalDate tLocalDate = LocalDate.of(2016,10,10);
-            for(int i = 0; i < 10; i++) {
+            LocalDate tLocalDate = LocalDate.of(2016, 10, 10);
+            for (int i = 0; i < 10; i++) {
                 final int tBrewCnt = tr.nextInt(10);
-                mBrewStatService.save(new BrewStat(tLocalDate, tBrewCnt, 1337 ));
+                mBrewStatService.save(new BrewStat(tLocalDate, tBrewCnt, 1337));
                 tLocalDate = tLocalDate.plusDays(1);
             }
-            tLocalDate = LocalDate.of(2016,11,10);
-            for(int i = 0; i < 10; i++) {
+            tLocalDate = LocalDate.of(2016, 11, 10);
+            for (int i = 0; i < 10; i++) {
                 final int tBrewCnt = tr.nextInt(10);
                 mBrewStatService.save(new BrewStat(tLocalDate, tBrewCnt, 1337));
                 tLocalDate = tLocalDate.plusDays(1);

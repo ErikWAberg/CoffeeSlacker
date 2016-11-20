@@ -6,9 +6,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
-import java.util.AbstractMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
 import static java.util.AbstractMap.SimpleEntry;
 import static coffeeslacker.app.BrewState.*;
 
@@ -55,7 +55,7 @@ public class Brew implements BrewBountyListener {
         mBrewState = BREWING;
         mClaimer = null;
         mStartTime = LocalDateTime.now();
-        if(!mHasBrewedToday.getKey().equals(LocalDate.now()) || !mHasBrewedToday.getValue()) {
+        if (!mHasBrewedToday.getKey().equals(LocalDate.now()) || !mHasBrewedToday.getValue()) {
             mHasBrewedToday = new SimpleEntry<>(LocalDate.now(), true);
         }
     }
@@ -72,8 +72,6 @@ public class Brew implements BrewBountyListener {
         return mStartTime.plus(mClaimableTime, mClaimableTimeUnit).isAfter(LocalDateTime.now());
     }
 
-
-
     public boolean inState(BrewState pBrewState) {
         return mBrewState == pBrewState;
     }
@@ -81,7 +79,6 @@ public class Brew implements BrewBountyListener {
     public boolean afterExpectedBrewTime() {
         return LocalDateTime.now().isAfter(mStartTime.plus(mExpectedBrewTime, mExpectedBrewTimeUnit));
     }
-
 
     public boolean hasBeenClaimed() {
         return mClaimer != null;
@@ -108,7 +105,7 @@ public class Brew implements BrewBountyListener {
 
     @Override
     public void bountyExpired(final BrewBounty pBrewBounty) {
-        if(mBounty.equals(pBrewBounty)) {
+        if (mBounty.equals(pBrewBounty)) {
             mBounty.shutdown();
             mBounty = null;
         }
