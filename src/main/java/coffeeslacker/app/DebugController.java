@@ -22,6 +22,11 @@ public class DebugController {
         mCoffeeSlacker.toggleDebug();
     }
 
+    @RequestMapping(value = "/editBrewer", method = RequestMethod.POST)
+    public void editBrewer(@RequestParam("slackUser") String slackUser, @RequestParam("brews") int brews) {
+        mCoffeeSlacker.editBrewer(slackUser, brews);
+    }
+
 
     @RequestMapping(value = "/blyat", method = RequestMethod.POST)
     public void deleteEverything(@RequestParam("asd") String asd) {

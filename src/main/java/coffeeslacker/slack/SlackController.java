@@ -29,8 +29,8 @@ public class SlackController {
                              @RequestParam(name="channel_name", required = false) String channel_name,
                              @RequestParam(name="timestamp", required = false) String timestamp,
                              @RequestParam(name="user_id", required = false) String user_id,
-                             @RequestParam(name="user_name", required = false) String user_name,
-                             @RequestParam(name="text", required = false) String text,
+                             @RequestParam(name="user_name") String user_name,
+                             @RequestParam(name="text") String text,
                              @RequestParam(name="trigger_word", required = false) String trigger_word
                             ) throws ExecutionException, InterruptedException {
 
@@ -38,15 +38,17 @@ public class SlackController {
         cLogger.info("Slack sniffer: " + user_name + ", " + text);
         String tResponse = "";
 
-        switch (text) {
+        switch (text.toLowerCase()) {
             case "!claim":
                 mCoffeeSlacker.onClaimRequest(user_name);
                 break;
             case "!stats":
-                tResponse = mCoffeeSlacker.onStatsRequest(user_name);
+                mCoffeeSlacker.onStatsRequest(user_name);
                 break;
             case "!bounty":
-                tResponse = mCoffeeSlacker.onBountyRequest(user_name);
+                mCoffeeSlacker.onBountyRequest(user_name);
+                break;
+            case "!vaska":
                 break;
             case "!help":
                 tResponse = "```!claim to claim a brew.\n!stats to view statistics & top 15 brewers.\n!bounty to give one of your points to " +

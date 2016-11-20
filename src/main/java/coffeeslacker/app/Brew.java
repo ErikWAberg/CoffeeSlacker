@@ -2,61 +2,86 @@ package coffeeslacker.app;
 
 import coffeeslacker.brewer.Brewer;
 
-import java.time.LocalTime;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
+import java.util.AbstractMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import static java.util.AbstractMap.SimpleEntry;
+import static coffeeslacker.app.BrewState.*;
 
 public class Brew implements BrewBountyListener {
 
     private static Brew mBrewInstance = new Brew();
-    private LocalTime mStartTime;
 
-    private long mDelayAmount;
-    private TemporalUnit mDelayTimeUnit = ChronoUnit.MINUTES;
-
+    private long mExpectedBrewTime;
+    private TemporalUnit mExpectedBrewTimeUnit;
     private long mBountyHuntDuration;
     private TimeUnit mBountyHuntDurationTimeUnit;
-    private boolean mWaitingForDrip;
-
+    private long mClaimableTime = 20;
+    private TemporalUnit mClaimableTimeUnit = ChronoUnit.MINUTES;
 
     private Brew() {
-        mStartTime = LocalTime.now();
+        mStartTime = LocalDateTime.now();
     }
 
     public static Brew instance() {
         return mBrewInstance;
     }
 
-    public void configDelayThreshold(long pDelayAmount, TemporalUnit pDelayTimeUnit) {
-        mDelayAmount = pDelayAmount;
-        mDelayTimeUnit = pDelayTimeUnit;
+    void configDelayThreshold(long pExpectedBrewTime, TemporalUnit pExpectedBrewTimeUnit) {
+        mExpectedBrewTime = pExpectedBrewTime;
+        mExpectedBrewTimeUnit = pExpectedBrewTimeUnit;
     }
 
-    public void configBountyDuration(final long pCBountyHuntDuration, final TimeUnit pDurationTimeUnit) {
+    void configBountyDuration(final long pCBountyHuntDuration, final TimeUnit pDurationTimeUnit) {
         mBountyHuntDuration = pCBountyHuntDuration;
         mBountyHuntDurationTimeUnit = pDurationTimeUnit;
     }
 
+    private LocalDateTime mStartTime;
+    private BrewState mBrewState = WAITFORBREW;
     private Brewer mClaimer = null;
-    private boolean mBrewing = false;
     private BrewBounty mBounty = null;
+    private Map.Entry<LocalDate, Boolean> mHasBrewedToday = new SimpleEntry<>(LocalDate.now(), false);
 
-    public void reset() {
-        mClaimer = null;
-        mBrewing = false;
-        mBounty = null;
-        mWaitingForDrip = false;
+    public void waitForBrew() {
+        mBrewState = WAITFORBREW;
     }
 
     public void startBrew() {
-        mBrewing = true;
-        mStartTime = LocalTime.now();
+        mBrewState = BREWING;
+        mClaimer = null;
+        mStartTime = LocalDateTime.now();
+        if(!mHasBrewedToday.getKey().equals(LocalDate.now()) || !mHasBrewedToday.getValue()) {
+            mHasBrewedToday = new SimpleEntry<>(LocalDate.now(), true);
+        }
     }
 
-    public boolean isBrewing() {
-        return mBrewing;
+    public void waitForDrip() {
+        mBrewState = WAITFORDRIP;
     }
+
+    public boolean hasBrewedToday() {
+        return mHasBrewedToday.getKey().equals(LocalDate.now()) && mHasBrewedToday.getValue();
+    }
+
+    public boolean withinClaimableTime() {
+        return mStartTime.plus(mClaimableTime, mClaimableTimeUnit).isAfter(LocalDateTime.now());
+    }
+
+
+
+    public boolean inState(BrewState pBrewState) {
+        return mBrewState == pBrewState;
+    }
+
+    public boolean afterExpectedBrewTime() {
+        return LocalDateTime.now().isAfter(mStartTime.plus(mExpectedBrewTime, mExpectedBrewTimeUnit));
+    }
+
 
     public boolean hasBeenClaimed() {
         return mClaimer != null;
@@ -77,7 +102,6 @@ public class Brew implements BrewBountyListener {
         mBounty.startBountyHuntTimer(mBountyHuntDuration, mBountyHuntDurationTimeUnit);
     }
 
-
     public BrewBounty getActiveBounty() {
         return mBounty;
     }
@@ -90,19 +114,4 @@ public class Brew implements BrewBountyListener {
         }
     }
 
-    public LocalTime getStartTime() {
-        return mStartTime;
-    }
-
-    public boolean afterExpectedBrewTime() {
-        return LocalTime.now().isAfter(mStartTime.plus(mDelayAmount, mDelayTimeUnit));
-    }
-
-    public void waitForDrip() {
-        mWaitingForDrip = true;
-    }
-
-    public boolean isWaitingForDrip() {
-        return mWaitingForDrip;
-    }
 }

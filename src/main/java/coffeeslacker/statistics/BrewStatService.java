@@ -32,8 +32,10 @@ public class BrewStatService {
     public BrewStat getBrewStatByDate(LocalDate pDate) {
         BrewStat tBrewStat = mBrewStatRepository.findByDate(pDate);
         if(tBrewStat == null) {
-            tBrewStat = new BrewStat(pDate, 0);
-            return mBrewStatRepository.save(tBrewStat);
+            return new BrewStat(pDate, 0, 0);
+        }
+        if(tBrewStat.getClaimed() == null) {
+            tBrewStat.setClaimed(0);
         }
         return tBrewStat;
     }
@@ -61,5 +63,19 @@ public class BrewStatService {
         final BrewStat tBrewStatByDate = getBrewStatByDate(LocalDate.now());
         tBrewStatByDate.incrementBrews();
         save(tBrewStatByDate);
+    }
+
+    public void incrementTodaysClaimed() {
+        final BrewStat tBrewStatByDate = getBrewStatByDate(LocalDate.now());
+        tBrewStatByDate.incrementClaimed();
+        save(tBrewStatByDate);
+    }
+
+    public List<BrewStat> findByClaimed(int claimed) {
+        return mBrewStatRepository.findByClaimed(claimed);
+    }
+
+    public void delete(BrewStat pBrewStat) {
+        mBrewStatRepository.delete(pBrewStat);
     }
 }

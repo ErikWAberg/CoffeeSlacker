@@ -12,13 +12,11 @@ public class Brewer implements Comparable {
     private String rfid;
     private String slackUser;
     private int brews;
-    //private boolean brewMaster;
 
-    public Brewer(String rfid, String slackUser, int brews) { //, boolean brewMaster) {
+    public Brewer(String rfid, String slackUser, int brews) {
         this.rfid = rfid;
         this.slackUser = slackUser;
         this.brews = brews;
-        //this.brewMaster = brewMaster;
     }
 
     public String getRfid() {
@@ -38,10 +36,6 @@ public class Brewer implements Comparable {
         if(brews < 0) {
             brews = 0;
         }
-    }
-
-    public boolean isBetterThan(final Brewer pBrewer) {
-        return pBrewer == null || this.compareTo(pBrewer) > 0;
     }
 
     @Override
@@ -64,6 +58,10 @@ public class Brewer implements Comparable {
         return this.brews - tBrewer.brews;
     }
 
+    public void setRfid(final String pRfid) {
+        rfid = pRfid;
+    }
+
     @Override
     public String toString() {
         return "Brewer{" +
@@ -72,19 +70,8 @@ public class Brewer implements Comparable {
                 ", brews=" + brews +
                 '}';
     }
-/*
-    public boolean isBrewMaster() {
-        return brewMaster;
-    }
 
-    public void setBrewMaster(final boolean pBrewMaster) {
-        brewMaster = pBrewMaster;
-    }
-    public void update(final String pSlackUser) {
-        slackUser = pSlackUser;
-    }
-*/
-    public void setRfid(final String pRfid) {
-        rfid = pRfid;
+    public void setBrews(final int brews) {
+        this.brews = brews;
     }
 }

@@ -11,14 +11,20 @@ public class BrewStat {
 
     private LocalDate date;
     private int brews;
+    private Integer claimed;
 
-    public BrewStat(final LocalDate date, final int brews) {
+    public BrewStat(final LocalDate date, final int brews, final Integer claimed) {
         this.date = date;
         this.brews = brews;
+        this.claimed = claimed;
     }
 
     public void incrementBrews() {
         brews++;
+    }
+
+    public void incrementClaimed() {
+        claimed++;
     }
 
     public int getBrews() {
@@ -27,6 +33,14 @@ public class BrewStat {
 
     public void setBrews(final int pBrews) {
         brews = pBrews;
+    }
+
+    public Integer getClaimed() {
+        return claimed;
+    }
+
+    public void setClaimed(final Integer pClaimed) {
+        claimed = pClaimed;
     }
 
     public LocalDate getDate() {
@@ -45,4 +59,6 @@ public class BrewStat {
                 ", brews=" + brews +
                 '}';
     }
+
+
 }

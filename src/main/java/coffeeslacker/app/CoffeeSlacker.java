@@ -20,7 +20,9 @@ import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
+
+import static coffeeslacker.app.BrewState.*;
+
 
 @Service
 public class CoffeeSlacker implements BrewBountyListener {
@@ -29,14 +31,14 @@ public class CoffeeSlacker implements BrewBountyListener {
     private static final String cMasterTitle = "Master Elite Bean Injector";
     private static final String cBrewCompleteChannelMsg = "*Brew complete*, först to kvarn!";
 
-    private long mChannelDelayAfterCompletedBrew = 75;
-    private TimeUnit mChannelDelayAfterCompletedBrewUnit = TimeUnit.SECONDS;
-    private long mMsgDelayAfterCompletedBrew = 55;
-    private TimeUnit mMsgDelayAfterCompletedBrewUnit = TimeUnit.SECONDS;
-    private int mBountyHuntDuration = 15;
-    private TimeUnit mBountyHuntDurationUnit = TimeUnit.MINUTES;
-    private long mBrewExpectedCompletionTime = 4;
-    private TemporalUnit mBrewExpectedCompletionUnit = ChronoUnit.MINUTES;
+    private long mChannelDelayAfterCompletedBrew;
+    private TimeUnit mChannelDelayAfterCompletedBrewUnit;
+    private long mMsgDelayAfterCompletedBrew;
+    private TimeUnit mMsgDelayAfterCompletedBrewUnit;
+    private int mBountyHuntDuration;
+    private TimeUnit mBountyHuntDurationUnit;
+    private long mBrewExpectedCompletionTime;
+    private TemporalUnit mBrewExpectedCompletionUnit;
 
 
     private BrewerService mBrewerService;
@@ -56,8 +58,36 @@ public class CoffeeSlacker implements BrewBountyListener {
         mBrewStatService = pBrewStatService;
         mScheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
         normalConfig();
+        toggleDebug();
     }
 
+
+    public String onBountyRequest(final String pSlackUser) {
+        final String tBountyResp = veryBountyRequest(pSlackUser);
+        if(mDebugMode) {
+            mSlackService.send(tBountyResp);
+            return "";
+        }
+        return tBountyResp;
+    }
+
+    public String onClaimRequest(String pSlackUser) {
+        final String tClaimResp = veryBrewClaim(mBrewerService.getBrewer(pSlackUser));
+        if(mDebugMode) {
+            mSlackService.send(tClaimResp);
+            return "";
+        }
+        return tClaimResp;
+    }
+
+    public String onStatsRequest(final String pSlackUser) {
+        final String tStats = compileBrewStats(pSlackUser);
+        if(mDebugMode) {
+            mSlackService.send(tStats);
+            return "";
+        }
+        return tStats;
+    }
 
     public synchronized void onSensorReport(final String pValue, final int pSensorId) {
         final Sensor tSensor = mSensorService.getSensorById(pSensorId);
@@ -66,7 +96,6 @@ public class CoffeeSlacker implements BrewBountyListener {
             if (tSensorType != null) {
                 switch (tSensorType) {
                     case LIGHT:
-                        cLogger.info("On lux update: lux=" + pValue);
                         onLuxScan(pValue, tSensor);
                         break;
                     case RFID:
@@ -74,7 +103,7 @@ public class CoffeeSlacker implements BrewBountyListener {
 
                         final Brewer tBrewerByRfid = mBrewerService.getBrewerByRfid(pValue);
                         if (tBrewerByRfid != null) {
-                            onBrewClaim(tBrewerByRfid);
+                            veryBrewClaim(tBrewerByRfid);
                         } else {
                             cLogger.info("RFID not registered: " + pValue);
                             //need slack-bot
@@ -98,25 +127,101 @@ public class CoffeeSlacker implements BrewBountyListener {
 
     }
 
-    public void onClaimRequest(String pSlackUser) {
-        mSlackService.send(onBrewClaim(mBrewerService.getBrewer(pSlackUser)));
+    private int mPrevLuxValue = -1;
+    private void onLuxScan(String pLux, Sensor pSensor) {
+        try {
+            int tLux = Integer.parseInt(pLux);
+
+            if (tLux > (int) pSensor.getUpperThreshold() && mBrew.inState(WAITFORBREW)) {
+                cLogger.info("Starting brew: lux=" + pLux);
+
+                mBrew.startBrew();
+                //checkNeverEndingBrew(mBrew.getStartTime(), cBrewCompleteChannelMsg);
+                mSlackService.send("Beans injected, brew initialized!");
+                mBrewStatService.incrementTodaysBrews();
+
+            } else if (tLux < (int) pSensor.getLowerThreshold()) {
+
+                if (mBrew.inState(BREWING) && mBrew.afterExpectedBrewTime()) {
+                    cLogger.info("Brew complete, waiting for drip: lux=" + pLux);
+
+                    mBrew.waitForDrip();
+                    List<String> tPrivilegedUsers = new LinkedList<>();
+                    Brewer tTopBrewer = mBrewerService.getBrewMaster();
+
+                    if (tTopBrewer != null) {
+                        tPrivilegedUsers.add(tTopBrewer.getSlackUser());
+                    }
+
+                    if (mBrew.hasBeenClaimed()) {
+                        String tSlackBrewClaimer = mBrew.getClaimer().getSlackUser();
+                        if (!tPrivilegedUsers.contains(tSlackBrewClaimer)) {
+                            tPrivilegedUsers.add(tSlackBrewClaimer);
+                        }
+                    }
+
+                    brewCompleteNotifyLeaders(tPrivilegedUsers, "Psst! Brew is klar, but don't berätta för anyone!");
+                    brewCompleteNotifyChannel(cBrewCompleteChannelMsg);
+
+                }
+            }
+            if(tLux != mPrevLuxValue) {
+                mPrevLuxValue = tLux;
+                cLogger.info("Got lux: " + pLux + ", brewing: " + mBrew.inState(BREWING) + ", afterExpectedBrewTime: " + mBrew.afterExpectedBrewTime() + ", waitingForDrip: " + mBrew.inState(WAITFORDRIP) + ", waitingForBrew: " + mBrew.inState(WAITFORBREW));
+            }
+
+        } catch (NumberFormatException nfe) {
+            cLogger.error("onLuxScan Failed Integer.parse on: " + pLux);
+        }
     }
 
-    private String onBrewClaim(Brewer pClaimee) {
-        String response = "";
 
-        if (!mBrew.isBrewing()) {
-            return "Aint no brew to claim yo.";
+
+    private String veryBountyRequest(String pSlackUser) {
+
+        if (mBrew.inState(BREWING)) {
+            return "Brew already in progress.";
         }
+
+        if (mBrew.getActiveBounty() != null) {
+            return "Bounty already in progress.";
+        }
+
+        Brewer tBountyStarter = mBrewerService.getBrewer(pSlackUser);
+
+        if (tBountyStarter.getBrews() == 0) {
+            return "You must claim a few brews before you can register a bounty!";
+        }
+
+        mBrew.startBounty(tBountyStarter, this);
+        return "*Bean bounty started by " + pSlackUser + "!*"
+                + " Claim a brew within " + mBountyHuntDuration + " minutes for extra points!";
+    }
+
+
+    private String veryBrewClaim(Brewer pClaimee) {
+        String response = "";
 
         if (mBrew.hasBeenClaimed()) {
             return "Brew has already been claimed.";
         }
+
+        if(!mBrew.hasBrewedToday()) {
+            return "No brew has been started today";
+        }
+
+        if(!mBrew.withinClaimableTime()) {
+            return "Brew must be claimed within 20 minutes";
+        }
         mBrew.claim(pClaimee);
 
         final BrewBounty tActiveBounty = mBrew.getActiveBounty();
-        if (tActiveBounty != null) {
 
+        if (tActiveBounty == null) {
+            pClaimee.adjustBrews(1);
+            response = "Brew claimed by " + pClaimee.getSlackUser() + ", now having " + pClaimee.getBrews() + " brews! (+1)";
+
+        } else {
             if (tActiveBounty.hasBeenClaimed()) {
                 return "Brew bounty has already been claimed.";
             }
@@ -136,11 +241,9 @@ public class CoffeeSlacker implements BrewBountyListener {
                 response = "Brew bounty claimed by " + pClaimee.getSlackUser() + ", now having " + pClaimee.getBrews() + " brews! (+2)"
                         + "\n_Bounty starter " + tBountyStarter.getSlackUser() + " loses one point, having " + tBountyStarter.getBrews() + " brews. (-1)_";
             }
-
-        } else {
-            pClaimee.adjustBrews(1);
-            response = "Brew claimed by " + pClaimee.getSlackUser() + ", now having " + pClaimee.getBrews() + " brews! (+1)";
         }
+
+        mBrewStatService.incrementTodaysClaimed();
 
         final Brewer tBrewMaster = mBrewerService.getBrewMaster();
         mBrewerService.save(pClaimee);
@@ -156,20 +259,15 @@ public class CoffeeSlacker implements BrewBountyListener {
 
     private void brewCompleteNotifyLeaders(List<String> pSlackUsers, String pSlackMessage) {
         mScheduledExecutorService.schedule(() -> {
-            if (mBrew.isWaitingForDrip()) {
-                pSlackUsers.forEach(pUser -> mSlackService.sendToUser(pUser, pSlackMessage));
-            }
-
-        }, mMsgDelayAfterCompletedBrew, mMsgDelayAfterCompletedBrewUnit);
+                    pSlackUsers.forEach(pUser -> mSlackService.sendToUser(pUser, pSlackMessage));
+                    mBrew.waitForBrew();
+                },
+                mMsgDelayAfterCompletedBrew, mMsgDelayAfterCompletedBrewUnit);
     }
 
     private void brewCompleteNotifyChannel(String pSlackMessage) {
-        mScheduledExecutorService.schedule(() -> {
-            if (mBrew.isWaitingForDrip()) {
-                mSlackService.send(pSlackMessage);
-                mBrew.reset();
-            }
-        }, mChannelDelayAfterCompletedBrew, mChannelDelayAfterCompletedBrewUnit);
+        mScheduledExecutorService.schedule(() -> mSlackService.send(pSlackMessage),
+                mChannelDelayAfterCompletedBrew, mChannelDelayAfterCompletedBrewUnit);
     }
 /*
     private void checkNeverEndingBrew(LocalTime pBrewStartTime, String pSlackMessage) {
@@ -183,68 +281,6 @@ public class CoffeeSlacker implements BrewBountyListener {
     }
 */
 
-    private void onLuxScan(String pLux, Sensor pSensor) {
-        try {
-            int tLux = Integer.parseInt(pLux);
-
-            if (tLux > (int) pSensor.getUpperThreshold() && !mBrew.isBrewing()) {
-                mBrew.startBrew();
-                //checkNeverEndingBrew(mBrew.getStartTime(), cBrewCompleteChannelMsg);
-                mSlackService.send("Beans injected, brew initialized!");
-                mBrewStatService.incrementTodaysBrews();
-
-            } else if (tLux < (int) pSensor.getLowerThreshold() && mBrew.isBrewing()) {
-
-                if (mBrew.afterExpectedBrewTime() && !mBrew.isWaitingForDrip()) {
-                    mBrew.waitForDrip();
-                    List<String> tPrivilegedUsers = new LinkedList<>();
-                    Brewer tTopBrewer = mBrewerService.getBrewMaster();
-
-                    if (tTopBrewer != null) {
-                        tPrivilegedUsers.add(tTopBrewer.getSlackUser());
-                    }
-
-                    if (mBrew.hasBeenClaimed()) {
-                        if (!tPrivilegedUsers.contains(mBrew.getClaimer().getSlackUser())) {
-                            tPrivilegedUsers.add(mBrew.getClaimer().getSlackUser());
-                        }
-                    }
-
-                    brewCompleteNotifyLeaders(tPrivilegedUsers, "Psst! Brew is klar, but don't berätta för anyone!");
-                    brewCompleteNotifyChannel(cBrewCompleteChannelMsg);
-
-                } else {
-                    cLogger.info("Got finished brew, but afterExpectedBrewTime: " + mBrew.afterExpectedBrewTime() + " waitingForDrip: " + mBrew.isWaitingForDrip());
-                }
-
-            }
-
-        } catch (NumberFormatException nfe) {
-            cLogger.error("onLuxScan Failed Integer.parse on: " + pLux);
-        }
-    }
-
-
-    public String onBountyRequest(String pSlackUser) {
-
-        if (mBrew.isBrewing()) {
-            return "Brew already in progress.";
-        }
-        if (mBrew.getActiveBounty() != null) {
-            return "Bounty already in progress.";
-        }
-
-        Brewer tBountyStarter = mBrewerService.getBrewer(pSlackUser);
-
-        if (tBountyStarter.getBrews() == 0) {
-            return "You must claim a few brews before you can register a bounty!";
-        }
-
-        mBrew.startBounty(tBountyStarter, this);
-        return "*Bean bounty started by " + pSlackUser + "!*"
-                + " Claim a brew within " + mBountyHuntDuration + " minutes for extra points!";
-    }
-
 
     @Override
     public void bountyExpired(final BrewBounty pBrewBounty) {
@@ -255,11 +291,14 @@ public class CoffeeSlacker implements BrewBountyListener {
     }
 
 
-    public String onStatsRequest(final String pSlackUser) {
+    private String compileBrewStats(final String pSlackUser) {
 
         StringBuilder tStrBuilder = new StringBuilder("```");
 
-        tStrBuilder.append(String.format("Brews today: %d, yesterday: %d\n", getTodaysBrewCount(), getYesterdaysBrewCount()));
+        BrewStat tStatsToday = getTodaysBrewStat();
+        BrewStat tStatsYday = getYesterdaysBrewStat();
+        tStrBuilder.append(String.format("Today: brews=%d, claimed=%d\n", tStatsToday.getBrews(), tStatsToday.getClaimed()));
+        tStrBuilder.append(String.format("Yesterday: brews=%d, claimed=%d\n", tStatsYday.getBrews(), tStatsYday.getClaimed()));
         tStrBuilder.append(String.format("Stats this month (today excluded): %s \n", averageThisMonth()));
         tStrBuilder.append(String.format("Stats previous month: %s\n", averagePreviousMonth()));
         tStrBuilder.append(String.format("%-10s %-20s %-5s\n", "Rating", "Brewer", "Brews"));
@@ -267,27 +306,28 @@ public class CoffeeSlacker implements BrewBountyListener {
 
         final Brewer tStatBrewer = mBrewerService.getBrewer(pSlackUser);
         List<Brewer> tBrewers = mBrewerService.getBrewersSortedByBrewCount();
-        Brewer tBrewMaster = mBrewerService.getBrewMaster();
+        final Brewer tBrewMaster = mBrewerService.getBrewMaster();
 
         int tStatLimit = 15 > tBrewers.size() ? tBrewers.size() : 15;
 
         final int tBrewerIndex = tBrewers.indexOf(tStatBrewer);
         boolean outOfLimit = false;
-        if (tBrewerIndex > tStatLimit - 1) {
+        if (tBrewerIndex > tStatLimit - 1 || tStatBrewer.getBrews() == 0) {
             outOfLimit = true;
         }
-        int i = 0;
+
         if (tBrewMaster != null && tBrewMaster.getBrews() > 0) {
             tStrBuilder.append(String.format("%-10s %-20s %-5s %-10s\n",
-                    (i + 1) + ".", tBrewMaster.getSlackUser(), tBrewMaster.getBrews(), "<-- " + cMasterTitle + "!"));
-            i++;
+                    1 + ".", tBrewMaster.getSlackUser(), tBrewMaster.getBrews(), "<-- " + cMasterTitle + "!"));
         }
 
-        for (; i < tStatLimit - (outOfLimit ? 1 : 0); i++) {
-            Brewer tBrewer = tBrewers.get(i);
-            tStrBuilder.append(String.format("%-10s %-20s %-5s\n",
-                    (i + 1) + ".", tBrewer.getSlackUser(), tBrewer.getBrews()));
-        }
+        tBrewers.stream()
+                .filter(brewer -> brewer.getBrews() > 0)
+                .filter(brewer -> tBrewMaster == null || !brewer.equals(tBrewMaster))
+                .limit(tStatLimit - (outOfLimit ? 1 : 0))
+                .forEach(brewer -> tStrBuilder.append(String.format("%-10s %-20s %-5s\n",
+                        (tBrewers.indexOf(brewer) + 1) + ".", brewer.getSlackUser(), brewer.getBrews())));
+
 
         if (outOfLimit) {
             tStrBuilder.append(String.format("...\n%-10s %-20s %-5s\n",
@@ -299,44 +339,46 @@ public class CoffeeSlacker implements BrewBountyListener {
     }
 
 
-    private int getYesterdaysBrewCount() {
+    private BrewStat getYesterdaysBrewStat() {
         LocalDate tToday = LocalDate.now();
         LocalDate tQueryDay = tToday.minusDays(1);
         if (tToday.getDayOfWeek() == DayOfWeek.MONDAY) {
             tQueryDay = tQueryDay.minusDays(2);
         }
-        return mBrewStatService.getBrewStatByDate(tQueryDay).getBrews();
+        return mBrewStatService.getBrewStatByDate(tQueryDay);
     }
 
-    private int getTodaysBrewCount() {
-        return mBrewStatService.getBrewStatByDate(LocalDate.now()).getBrews();
+    private BrewStat getTodaysBrewStat() {
+        return mBrewStatService.getBrewStatByDate(LocalDate.now());
     }
 
     private String stringifyStats(DoubleSummaryStatistics tStats) {
-        if(tStats.getCount() > 0) {
-            return String.format("brews: %d, brews/day: %.1f, min: %d, max: %d", (int)tStats.getSum(), tStats.getAverage(), (int)tStats.getMin(), (int)tStats.getMax());
+        if (tStats.getCount() > 0) {
+            return String.format("brews: %d, avg: %.1f, min: %d, max: %d", (int) tStats.getSum(), tStats.getAverage(), (int) tStats.getMin(), (int) tStats.getMax());
         }
-        return String.format("brews: %d, brews/day: %.1f, min: %d, max: %d", 0, 0f, 0, 0);
+        return String.format("brews: %d, avg: %.1f, min: %d, max: %d", 0, 0f, 0, 0);
     }
 
     private Map.Entry<LocalDate, BrewStat[]> mThisMonthStats = null;
+
     private String averageThisMonth() {
         LocalDate tDate = LocalDate.now();
-        if(mThisMonthStats == null || !mThisMonthStats.getKey().equals(tDate.withDayOfMonth(1))) {
-             mThisMonthStats = new AbstractMap.SimpleEntry<>(tDate.withDayOfMonth(1), new BrewStat[31]);
+        if (mThisMonthStats == null || !mThisMonthStats.getKey().equals(tDate.withDayOfMonth(1))) {
+            mThisMonthStats = new AbstractMap.SimpleEntry<>(tDate.withDayOfMonth(1), new BrewStat[31]);
         }
 
-        for(int tDay = 1; tDay <= tDate.getDayOfMonth(); tDay++) {
-            if(mThisMonthStats.getValue()[tDay] == null) {
+        for (int tDay = 1; tDay <= tDate.getDayOfMonth(); tDay++) {
+            if (mThisMonthStats.getValue()[tDay] == null) {
                 mThisMonthStats.getValue()[tDay] = mBrewStatService.getBrewStatByDate(tDate.withDayOfMonth(tDay));
             }
         }
         DoubleSummaryStatistics tDoubleSummaryStatistics = Arrays.stream(mThisMonthStats.getValue())
                 .filter(stat -> stat != null)
+                .filter(stat -> stat.getBrews() > 0)
                 .filter(stat ->
-                stat.getDate().getDayOfMonth() != tDate.getDayOfMonth() &&
-                        stat.getDate().getMonth() == tDate.getMonth() &&
-                        stat.getDate().getYear() == tDate.getYear())
+                        stat.getDate().getDayOfMonth() != tDate.getDayOfMonth() &&
+                                stat.getDate().getMonth() == tDate.getMonth() &&
+                                stat.getDate().getYear() == tDate.getYear())
                 .mapToDouble(BrewStat::getBrews).summaryStatistics();
 
         return stringifyStats(tDoubleSummaryStatistics);
@@ -344,26 +386,28 @@ public class CoffeeSlacker implements BrewBountyListener {
     }
 
     private Map.Entry<LocalDate, String> mPreviousMonthStats = null;
+
     private String averagePreviousMonth() {
         LocalDate tDate = LocalDate.now().minusMonths(1).withDayOfMonth(1);
 
-        if(mPreviousMonthStats != null && mPreviousMonthStats.getKey().equals(tDate)) {
+        if (mPreviousMonthStats != null && mPreviousMonthStats.getKey().equals(tDate)) {
             return mPreviousMonthStats.getValue();
         }
 
         DoubleSummaryStatistics tDoubleSummaryStatistics = mBrewStatService.getAllBrewStats()
                 .stream()
                 .filter(stat ->
-                                stat.getDate().getMonth() == tDate.getMonth() &&
+                        stat.getDate().getMonth() == tDate.getMonth() &&
                                 stat.getDate().getYear() == tDate.getYear())
-                .mapToDouble(BrewStat::getBrews).summaryStatistics();;
+                .mapToDouble(BrewStat::getBrews).summaryStatistics();
+        ;
         String tFormattedStats = stringifyStats(tDoubleSummaryStatistics);
         mPreviousMonthStats = new AbstractMap.SimpleEntry<>(tDate, tFormattedStats);
         return tFormattedStats;
     }
 
 
-
+    // ====================== DEBUG STUFF ======================================
     private void debugConfig() {
         mChannelDelayAfterCompletedBrew = 8;
         mChannelDelayAfterCompletedBrewUnit = TimeUnit.SECONDS;
@@ -392,37 +436,52 @@ public class CoffeeSlacker implements BrewBountyListener {
 
         if (mDebugMode) {
             debugConfig();
-          /*  for(int i = 0; i < 10; i++) {
-                mBrewerService.deleteBrewer("debug" + i);
-                mBrewerService.getBrewer("debug" + i);
-            }
             final Random tr = new Random();
-            mBrewStatService.deleteEverything();
-            LocalDate tLocalDate = LocalDate.of(2016,10,1);
+
+            for(int i = 0; i < 16; i++) {
+                mBrewerService.deleteBrewer("debug" + i);
+                Brewer tBrewer = mBrewerService.getBrewer("debug" + i);
+                int tBrewCount = tr.nextInt(10);
+                tBrewCount = tBrewCount == 0 ? 1 : tBrewCount;
+                tBrewer.adjustBrews(tBrewCount);
+                mBrewerService.save(tBrewer);
+            }
+
+            LocalDate tLocalDate = LocalDate.of(2016,10,10);
             for(int i = 0; i < 10; i++) {
-                mBrewStatService.save(new BrewStat(tLocalDate, tr.nextInt(10)));
+                final int tBrewCnt = tr.nextInt(10);
+                mBrewStatService.save(new BrewStat(tLocalDate, tBrewCnt, 1337 ));
                 tLocalDate = tLocalDate.plusDays(1);
             }
-            tLocalDate = LocalDate.of(2016,11,8);
+            tLocalDate = LocalDate.of(2016,11,10);
             for(int i = 0; i < 10; i++) {
-                mBrewStatService.save(new BrewStat(tLocalDate, tr.nextInt(10)));
+                final int tBrewCnt = tr.nextInt(10);
+                mBrewStatService.save(new BrewStat(tLocalDate, tBrewCnt, 1337));
                 tLocalDate = tLocalDate.plusDays(1);
-            } */
+            }
         } else {
             normalConfig();
-            for(int i = 0; i < 10; i++) {
+            for (int i = 0; i < 16; i++) {
                 mBrewerService.deleteBrewer("debug" + i);
             }
+            List<BrewStat> tDebugStats = mBrewStatService.findByClaimed(1337);
+            tDebugStats.forEach(stat -> mBrewStatService.delete(stat));
         }
         mBrew.configDelayThreshold(mBrewExpectedCompletionTime, mBrewExpectedCompletionUnit);
         mBrew.configBountyDuration(mBountyHuntDuration, mBountyHuntDurationUnit);
     }
 
-    public void blyat(final String pAsd) {
-        if(pAsd.equals("blaaat")) {
+    void blyat(final String pAsd) {
+        if (pAsd.equals("blaaat")) {
             mBrewStatService.deleteEverything();
             mBrewerService.deleteEverything();
             mSensorService.deleteEverything();
         }
+    }
+
+    void editBrewer(final String pSlackUser, final int pBrews) {
+        final Brewer tBrewer = mBrewerService.getBrewer(pSlackUser);
+        tBrewer.setBrews(pBrews);
+        mBrewerService.save(tBrewer);
     }
 }
