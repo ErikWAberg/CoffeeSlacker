@@ -77,8 +77,7 @@ public class Brew implements BrewBountyListener {
     }
 
     public boolean afterExpectedBrewTime() {
-	if(mStartTime == null) return false;
-        return LocalDateTime.now().isAfter(mStartTime.plus(mExpectedBrewTime, mExpectedBrewTimeUnit));
+        return mStartTime != null && LocalDateTime.now().isAfter(mStartTime.plus(mExpectedBrewTime, mExpectedBrewTimeUnit));
     }
 
     public boolean hasBeenClaimed() {
