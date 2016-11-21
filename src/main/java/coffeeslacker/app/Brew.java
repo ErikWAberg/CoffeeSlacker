@@ -69,7 +69,7 @@ public class Brew implements BrewBountyListener {
     }
 
     public boolean withinClaimableTime() {
-        return mStartTime.plus(mClaimableTime, mClaimableTimeUnit).isAfter(LocalDateTime.now());
+        return mStartTime != null && mStartTime.plus(mClaimableTime, mClaimableTimeUnit).isAfter(LocalDateTime.now());
     }
 
     public boolean inState(BrewState pBrewState) {
