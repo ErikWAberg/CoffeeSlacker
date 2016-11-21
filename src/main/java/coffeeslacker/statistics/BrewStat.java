@@ -3,6 +3,9 @@ package coffeeslacker.statistics;
 import org.springframework.data.annotation.Id;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.LinkedList;
+import java.util.List;
 
 public class BrewStat {
 
@@ -12,15 +15,18 @@ public class BrewStat {
     private LocalDate date;
     private int brews;
     private Integer claimed;
+    private List<LocalTime> startTimes;
 
     public BrewStat(final LocalDate date, final int brews, final Integer claimed) {
         this.date = date;
         this.brews = brews;
         this.claimed = claimed;
+        startTimes = new LinkedList<>();
     }
 
     public void incrementBrews() {
         brews++;
+        startTimes.add(LocalTime.now());
     }
 
     public void incrementClaimed() {
@@ -45,6 +51,10 @@ public class BrewStat {
 
     public LocalDate getDate() {
         return date;
+    }
+
+    public List<LocalTime> getStartTimes() {
+        return startTimes;
     }
 
     public void setDate(final LocalDate pDate) {

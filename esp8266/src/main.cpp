@@ -65,6 +65,7 @@ void loop() {
   delay(2000);
 
   if (WiFi.status() == WL_CONNECTED) {
+    digitalWrite(LED_BLUE, LOW);
     int lux = light_sensor_read();
     Serial.println(lux);
     if(http_post(lux) == 200) {
@@ -72,6 +73,7 @@ void loop() {
     } else {
       alert_on();
     }
+    digitalWrite(LED_BLUE, HIGH);
     /*
     if(waitForHigh) {
       if(lux > THRESH) {
