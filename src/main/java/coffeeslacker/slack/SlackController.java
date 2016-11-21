@@ -40,13 +40,13 @@ public class SlackController {
 
         switch (text.toLowerCase()) {
             case "!claim":
-                mCoffeeSlacker.onClaimRequest(user_name);
+                tResponse = mCoffeeSlacker.onClaimRequest(user_name);
                 break;
             case "!stats":
-                mCoffeeSlacker.onStatsRequest(user_name);
+                tResponse = mCoffeeSlacker.onStatsRequest(user_name);
                 break;
             case "!bounty":
-                mCoffeeSlacker.onBountyRequest(user_name);
+                tResponse = mCoffeeSlacker.onBountyRequest(user_name);
                 break;
             case "!vaska":
                 break;
