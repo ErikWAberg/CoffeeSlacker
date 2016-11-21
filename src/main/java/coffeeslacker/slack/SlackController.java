@@ -51,8 +51,11 @@ public class SlackController {
             case "!vaska":
                 break;
             case "!help":
-                tResponse = "```!claim to claim a brew.\n!stats to view statistics & top 15 brewers.\n!bounty to give one of your points to " +
-                        "the person that claims a brew within the next 15 minutes.```";
+                tResponse = "```" +
+                        "!claim a brew within 20minutes of an initialized brew to get points.\n" +
+                        "!stats to view statistics & top 15 brewers.\n" +
+                        "!bounty to give one of your points to the person that claims a brew within the next 15 minutes.\n" +
+                        "!vaska -- not implemented yet --```";
                 break;
         }
 
