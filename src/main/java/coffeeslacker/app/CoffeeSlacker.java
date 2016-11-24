@@ -375,12 +375,11 @@ public class CoffeeSlacker implements BrewBountyListener {
             }
         }
         DoubleSummaryStatistics tDoubleSummaryStatistics = Arrays.stream(mThisMonthStats.getValue())
-                .filter(stat -> stat != null)
+                .filter(Objects::nonNull)
                 .filter(stat -> stat.getBrews() > 0)
-                .filter(stat ->
-                        stat.getDate().getDayOfMonth() != tDate.getDayOfMonth() &&
-                                stat.getDate().getMonth() == tDate.getMonth() &&
-                                stat.getDate().getYear() == tDate.getYear())
+                .filter(stat -> stat.getDate().getDayOfMonth() != tDate.getDayOfMonth())
+                .filter(stat -> stat.getDate().getMonth() == tDate.getMonth())
+                .filter(stat -> stat.getDate().getYear() == tDate.getYear())
                 .mapToDouble(BrewStat::getBrews).summaryStatistics();
 
         return stringifyStats(tDoubleSummaryStatistics);
@@ -398,9 +397,10 @@ public class CoffeeSlacker implements BrewBountyListener {
 
         DoubleSummaryStatistics tDoubleSummaryStatistics = mBrewStatService.getAllBrewStats()
                 .stream()
-                .filter(stat ->
-                        stat.getDate().getMonth() == tDate.getMonth() &&
-                                stat.getDate().getYear() == tDate.getYear())
+                .filter(Objects::nonNull)
+                .filter(stat -> stat.getBrews() > 0)
+                .filter(stat -> stat.getDate().getMonth() == tDate.getMonth())
+                .filter(stat -> stat.getDate().getYear() == tDate.getYear())
                 .mapToDouble(BrewStat::getBrews).summaryStatistics();
         ;
         String tFormattedStats = stringifyStats(tDoubleSummaryStatistics);
