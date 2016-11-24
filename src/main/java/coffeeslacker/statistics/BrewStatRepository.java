@@ -10,5 +10,6 @@ public interface BrewStatRepository extends MongoRepository<BrewStat, LocalDate>
     BrewStat findByDate(LocalDate date);
     BrewStat findFirstByOrderByBrewsDesc();
     List<BrewStat> findByClaimed(int claimed);
+    List<BrewStat> findByBrews(int brews);
 
 }

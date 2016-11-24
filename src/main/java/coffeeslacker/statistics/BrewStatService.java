@@ -72,4 +72,9 @@ public class BrewStatService {
     public void delete(BrewStat pBrewStat) {
         mBrewStatRepository.delete(pBrewStat);
     }
+
+    public void deleteZeroBrewEntries() {
+        mBrewStatRepository.findByBrews(0)
+                .forEach(mBrewStatRepository::delete);
+    }
 }

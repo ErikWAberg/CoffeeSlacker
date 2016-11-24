@@ -24,7 +24,6 @@ public class Brew implements BrewBountyListener {
     private TemporalUnit mClaimableTimeUnit = ChronoUnit.MINUTES;
 
     private Brew() {
-        mStartTime = LocalDateTime.now();
     }
 
     public static Brew instance() {
@@ -41,7 +40,7 @@ public class Brew implements BrewBountyListener {
         mBountyHuntDurationTimeUnit = pDurationTimeUnit;
     }
 
-    private LocalDateTime mStartTime;
+    private static LocalDateTime mStartTime = LocalDateTime.now();
     private BrewState mBrewState = WAITFORBREW;
     private Brewer mClaimer = null;
     private BrewBounty mBounty = null;
@@ -69,7 +68,7 @@ public class Brew implements BrewBountyListener {
     }
 
     public boolean withinClaimableTime() {
-        return mStartTime != null && mStartTime.plus(mClaimableTime, mClaimableTimeUnit).isAfter(LocalDateTime.now());
+        return mStartTime.plus(mClaimableTime, mClaimableTimeUnit).isAfter(LocalDateTime.now());
     }
 
     public boolean inState(BrewState pBrewState) {
@@ -77,7 +76,7 @@ public class Brew implements BrewBountyListener {
     }
 
     public boolean afterExpectedBrewTime() {
-        return mStartTime != null && LocalDateTime.now().isAfter(mStartTime.plus(mExpectedBrewTime, mExpectedBrewTimeUnit));
+        return LocalDateTime.now().isAfter(mStartTime.plus(mExpectedBrewTime, mExpectedBrewTimeUnit));
     }
 
     public boolean hasBeenClaimed() {

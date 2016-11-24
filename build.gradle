@@ -49,7 +49,7 @@ dependencies {
     compile("org.springframework.boot:spring-boot-starter-web")
     compile("org.springframework.boot:spring-boot-starter-data-mongodb")
     compile("org.springframework.boot:spring-boot-starter-actuator")
-
+    compile("org.springframework.boot:spring-boot-starter-security")
     compile("com.fasterxml.jackson.core:jackson-databind")
     compile group: 'in.ashwanthkumar', name: 'slack-java-webhook', version: '0.0.7'
 } 

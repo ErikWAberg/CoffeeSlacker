@@ -29,7 +29,7 @@ import static coffeeslacker.app.BrewState.*;
 public class CoffeeSlacker implements BrewBountyListener {
 
     private static final Logger cLogger = LoggerFactory.getLogger(CoffeeSlacker.class);
-    private static final String cMasterTitle = "Master Elite Bean Injector";
+    private static final String cMasterTitle = "Master Elite Bean Injector"; //"en lund av berg och svärd.";
     private static final String cBrewCompleteChannelMsg = "*Brew complete*, först to kvarn!";
 
     private long mChannelDelayAfterCompletedBrew;
@@ -48,7 +48,7 @@ public class CoffeeSlacker implements BrewBountyListener {
     private BrewStatService mBrewStatService;
     private ScheduledExecutorService mScheduledExecutorService;
 
-    private Brew mBrew = Brew.instance();
+    private Brew mBrew;
     private boolean mDebugMode = false;
 
     @Autowired
@@ -58,7 +58,9 @@ public class CoffeeSlacker implements BrewBountyListener {
         mSlackService = pSlackService;
         mBrewStatService = pBrewStatService;
         mScheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+        mBrew = Brew.instance();
         normalConfig();
+        mBrewStatService.deleteZeroBrewEntries();
     }
 
 
@@ -250,7 +252,7 @@ public class CoffeeSlacker implements BrewBountyListener {
         final Brewer tNewBrewMaster = mBrewerService.getBrewMaster();
 
         if (tNewBrewMaster != null && tNewBrewMaster.equals(pClaimee) && !tNewBrewMaster.equals(tBrewMaster) || mBrewerService.getBrewerCount() == 1) {
-            response += "\n*" + pClaimee.getSlackUser() + " is now the " + cMasterTitle + "!*";
+            response += "\n*" + pClaimee.getSlackUser() + " is now " + cMasterTitle + "!*";
         }
 
         return response;
@@ -417,6 +419,8 @@ public class CoffeeSlacker implements BrewBountyListener {
         mBountyHuntDurationUnit = TimeUnit.SECONDS;
         mBrewExpectedCompletionTime = 30;
         mBrewExpectedCompletionUnit = ChronoUnit.SECONDS;
+        mBrew.configDelayThreshold(mBrewExpectedCompletionTime, mBrewExpectedCompletionUnit);
+        mBrew.configBountyDuration(mBountyHuntDuration, mBountyHuntDurationUnit);
     }
 
     private void normalConfig() {
@@ -428,6 +432,8 @@ public class CoffeeSlacker implements BrewBountyListener {
         mBountyHuntDurationUnit = TimeUnit.MINUTES;
         mBrewExpectedCompletionTime = 2;
         mBrewExpectedCompletionUnit = ChronoUnit.MINUTES;
+        mBrew.configDelayThreshold(mBrewExpectedCompletionTime, mBrewExpectedCompletionUnit);
+        mBrew.configBountyDuration(mBountyHuntDuration, mBountyHuntDurationUnit);
     }
 
     void toggleDebug() {
@@ -467,8 +473,7 @@ public class CoffeeSlacker implements BrewBountyListener {
             List<BrewStat> tDebugStats = mBrewStatService.findByClaimed(1337);
             tDebugStats.forEach(stat -> mBrewStatService.delete(stat));
         }
-        mBrew.configDelayThreshold(mBrewExpectedCompletionTime, mBrewExpectedCompletionUnit);
-        mBrew.configBountyDuration(mBountyHuntDuration, mBountyHuntDurationUnit);
+
     }
 
     void blyat(final String pAsd) {
