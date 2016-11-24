@@ -24,7 +24,7 @@ public class SensorService {
 
     public void deleteEverything() {
         mSensorRepository.deleteAll();
-        registerSensor(11, 10.0, 70.0, "LIGHT", "Köket");
+        registerSensor(11, 20.0, 70.0, "LIGHT", "Köket");
         registerSensor(12, 0.0, 0.0, "RFID", "Köket");
     }
 
