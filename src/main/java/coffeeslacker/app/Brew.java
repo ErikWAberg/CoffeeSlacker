@@ -9,10 +9,17 @@ import java.time.temporal.TemporalUnit;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static coffeeslacker.app.Brew.BrewState.BREWING;
+import static coffeeslacker.app.Brew.BrewState.WAITFORBREW;
+import static coffeeslacker.app.Brew.BrewState.WAITFORDRIP;
 import static java.util.AbstractMap.SimpleEntry;
-import static coffeeslacker.app.BrewState.*;
 
 public class Brew implements BrewBountyListener {
+
+    public enum BrewState {
+        WAITFORBREW, BREWING, WAITFORDRIP
+
+    }
 
     private static Brew mBrewInstance = new Brew();
 

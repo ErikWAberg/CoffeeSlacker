@@ -19,20 +19,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     private static final Logger cLogger = LoggerFactory.getLogger(WebSecurityConfig.class);
 
-
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
-        http
-                .csrf().disable()
-                .authorizeRequests()
-                .antMatchers(HttpMethod.POST, "/api/debug/*").hasRole("USER")
-                .antMatchers(HttpMethod.PUT, "/api/debug/*").hasRole("USER")
-                .antMatchers(HttpMethod.GET, "/api/debug/*").hasRole("USER")
-                .anyRequest().permitAll()
-                .and().httpBasic();
-
-    }
-
     @Value(value="${debug.user}")
     String mDebugUser;
 
@@ -48,5 +34,20 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .inMemoryAuthentication()
                 .withUser(mDebugUser).password(mDebugPassword).roles("USER");
     }
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http
+                .csrf().disable()
+                .authorizeRequests()
+                .antMatchers(HttpMethod.POST, "/api/debug/*").hasRole("USER")
+                .antMatchers(HttpMethod.PUT, "/api/debug/*").hasRole("USER")
+                .antMatchers(HttpMethod.GET, "/api/debug/*").hasRole("USER")
+                .anyRequest().permitAll()
+                .and().httpBasic();
+
+    }
+
+
 
 }

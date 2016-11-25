@@ -24,7 +24,7 @@ public class SlackService {
     private String mDebugUser;
     private boolean mDebugMode = false;
 
-    public SlackService(final String pWebHook, final String pSlackToken, final String pSlackChannelName, final String pDisplayName, final String pIcon, SlackService pDebugService) {
+    public SlackService(final String pWebHook, final String pSlackToken, final String pSlackChannelName, final String pDisplayName, final String pIcon) {
         cWebHook = pWebHook;
         cSlackToken = pSlackToken;
         cSlackChannelName = pSlackChannelName;
@@ -35,16 +35,21 @@ public class SlackService {
                 .icon(pIcon)
                 .sendToChannel(pSlackChannelName)
                 .displayName(pDisplayName);
-        mDebugService = pDebugService;
     }
 
     public void toggleDebugMode() {
         if(mDebugService != null && mDebugUser != null) {
             mDebugMode = !mDebugMode;
             if(mDebugMode) {
-                sendToUser(mDebugUser, "Bleep, bloop! Debug mode is on");
+                try {
+                    mSlack.sendToUser(mDebugUser).push(new SlackMessage("Bleep, bloop! Debug mode is on"));
+                } catch (IOException pE) {
+                }
             } else {
-                sendToUser(mDebugUser, "Bleep, bloop! Debug mode is off");
+                try {
+                    mSlack.sendToUser(mDebugUser).push(new SlackMessage("Bleep, bloop! Debug mode is off"));
+                } catch (IOException pE) {
+                }
             }
         }
     }
@@ -86,8 +91,8 @@ public class SlackService {
         return cSlackChannelName.equals(pSlackChannelName);
     }
 
-
-    public void setDebugUser(final String pSlackDebugUser) {
+    public void setupDebugServices(final SlackService pDebugService, final String pSlackDebugUser) {
+        mDebugService = pDebugService;
         mDebugUser = pSlackDebugUser;
     }
 }

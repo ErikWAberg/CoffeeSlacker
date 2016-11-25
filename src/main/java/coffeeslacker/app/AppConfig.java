@@ -35,18 +35,16 @@ public class AppConfig {
     private final String cIcon = ":coffee:";
 
     private SlackService debugSlackService() {
-        if(mSlackDebugChannel != null && mSlackDebugToken != null && mSlackDebugWebHook != null && mSlackDebugUser != null) {
-            final SlackService tDebugService = new SlackService(mSlackDebugWebHook, mSlackDebugToken, mSlackDebugChannel, cDisplayName, cIcon, null);
-            tDebugService.setDebugUser(mSlackDebugUser);
-            return tDebugService;
+        if(mSlackDebugChannel != null && mSlackDebugToken != null && mSlackDebugWebHook != null) {
+            return new SlackService(mSlackDebugWebHook, mSlackDebugToken, mSlackDebugChannel, cDisplayName, cIcon);
         }
         return null;
     }
 
     @Bean
     public SlackService slackService() {
-        final SlackService tSlackService = new SlackService(mSlackWebHook, mSlackToken, mSlackChannel, cDisplayName, cIcon, debugSlackService());
-        tSlackService.setDebugUser(mSlackDebugUser);
+        final SlackService tSlackService = new SlackService(mSlackWebHook, mSlackToken, mSlackChannel, cDisplayName, cIcon);
+        tSlackService.setupDebugServices(debugSlackService(), mSlackDebugUser);
         return tSlackService;
     }
 
