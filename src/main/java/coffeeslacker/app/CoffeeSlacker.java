@@ -29,7 +29,7 @@ import static coffeeslacker.app.BrewState.*;
 public class CoffeeSlacker implements BrewBountyListener {
 
     private static final Logger cLogger = LoggerFactory.getLogger(CoffeeSlacker.class);
-    private static final String cMasterTitle = "Master Elite Bean Injector"; //"en lund av berg och svärd.";
+    private static final String cMasterTitle = "Master Elite Bean Injector"; 
     private static final String cBrewCompleteChannelMsg = "*Brew complete*, först to kvarn!";
 
     private long mChannelDelayAfterCompletedBrew;
