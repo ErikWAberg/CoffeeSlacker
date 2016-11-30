@@ -243,6 +243,7 @@ public class CoffeeSlacker implements BrewBountyListener {
                 response = "Brew bounty claimed by " + pClaimee.getSlackUser() + ", now having " + pClaimee.getBrews() + " brews! (+2)"
                         + "\n_Bounty starter " + tBountyStarter.getSlackUser() + " loses one point, having " + tBountyStarter.getBrews() + " brews. (-1)_";
             }
+            mBrew.bountyExpired(tActiveBounty);
         }
 
         mBrewStatService.incrementTodaysClaimed();
