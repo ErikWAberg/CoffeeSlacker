@@ -181,7 +181,7 @@ public class CoffeeSlacker implements BrewBountyListener {
 
     private String veryBountyRequest(String pSlackUser) {
 
-        if (mBrew.inState(BREWING)) {
+        if (mBrew.inState(BREWING) || mBrew.inState(WAITFORDRIP)) {
             return "Brew already in progress.";
         }
 

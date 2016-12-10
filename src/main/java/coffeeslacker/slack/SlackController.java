@@ -38,7 +38,7 @@ public class SlackController {
         cLogger.info("Slack sniffer: " + user_name + ", " + text);
         String tResponse = "";
 
-        switch (text.toLowerCase()) {
+        switch (text.trim().toLowerCase()) {
             case "!claim":
                 tResponse = mCoffeeSlacker.onClaimRequest(user_name);
                 break;
