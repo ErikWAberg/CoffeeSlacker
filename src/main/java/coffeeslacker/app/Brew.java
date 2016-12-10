@@ -16,6 +16,8 @@ import static java.util.AbstractMap.SimpleEntry;
 
 public class Brew implements BrewBountyListener {
 
+    private static DelayedExecutorService mDelayedExecutorServiceService;
+
     public enum BrewState {
         WAITFORBREW, BREWING, WAITFORDRIP
 
@@ -33,7 +35,8 @@ public class Brew implements BrewBountyListener {
     private Brew() {
     }
 
-    public static Brew instance() {
+    public static Brew instance(final DelayedExecutorService pDelayedScheduler) {
+        mDelayedExecutorServiceService = pDelayedScheduler;
         return mBrewInstance;
     }
 
@@ -102,7 +105,7 @@ public class Brew implements BrewBountyListener {
         mBounty = new BrewBounty(pBountyStarter);
         mBounty.addBrewBountyListener(pBrewBountyListener);
         mBounty.addBrewBountyListener(this);
-        mBounty.startBountyHuntTimer(mBountyHuntDuration, mBountyHuntDurationTimeUnit);
+        mDelayedExecutorServiceService.schedule(mBounty, mBountyHuntDuration, mBountyHuntDurationTimeUnit);
     }
 
     public BrewBounty getActiveBounty() {
@@ -112,7 +115,6 @@ public class Brew implements BrewBountyListener {
     @Override
     public void bountyExpired(final BrewBounty pBrewBounty) {
         if (mBounty.equals(pBrewBounty)) {
-            mBounty.shutdown();
             mBounty = null;
         }
     }

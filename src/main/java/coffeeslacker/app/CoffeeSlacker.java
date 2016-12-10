@@ -26,9 +26,9 @@ import static coffeeslacker.app.Brew.BrewState.*;
 
 
 @Service
-public class CoffeeSlacker implements BrewBountyListener {
+public class CoffeeSlacker implements BrewBountyListener, DelayedExecutorService {
 
-    private static final Logger cLogger = LoggerFactory.getLogger(CoffeeSlacker.class);
+    private static final Logger cLogger = LoggerFactory.getLogger(DelayedExecutorService.class);
     private static final String cMasterTitle = "Master Elite Bean Injector"; 
     private static final String cBrewCompleteChannelMsg = "*Brew complete*, först to kvarn!";
 
@@ -58,11 +58,16 @@ public class CoffeeSlacker implements BrewBountyListener {
         mSlackService = pSlackService;
         mBrewStatService = pBrewStatService;
         mScheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-        mBrew = Brew.instance();
+        mBrew = Brew.instance((DelayedExecutorService) this);
         normalConfig();
         mBrewStatService.deleteZeroBrewEntries();
     }
 
+
+    @Override
+    public void schedule(Runnable pRunnable, long pDelay, TimeUnit pDelayTimeUnit) {
+        mScheduledExecutorService.schedule(pRunnable, pDelay, pDelayTimeUnit);
+    }
 
     public String onBountyRequest(final String pSlackUser) {
         final String tBountyResp = veryBountyRequest(pSlackUser);
@@ -261,15 +266,15 @@ public class CoffeeSlacker implements BrewBountyListener {
 
 
     private void brewCompleteNotifyLeaders(List<String> pSlackUsers, String pSlackMessage) {
-        mScheduledExecutorService.schedule(() -> {
-                    pSlackUsers.forEach(pUser -> mSlackService.sendToUser(pUser, pSlackMessage));
-                    mBrew.waitForBrew();
-                },
-                mMsgDelayAfterCompletedBrew, mMsgDelayAfterCompletedBrewUnit);
+        schedule(() -> {
+            pSlackUsers.forEach(pUser -> mSlackService.sendToUser(pUser, pSlackMessage));
+            mBrew.waitForBrew();
+        }, mMsgDelayAfterCompletedBrew, mMsgDelayAfterCompletedBrewUnit);
+
     }
 
     private void brewCompleteNotifyChannel(String pSlackMessage) {
-        mScheduledExecutorService.schedule(() -> mSlackService.send(pSlackMessage),
+        schedule(() -> mSlackService.send(pSlackMessage),
                 mChannelDelayAfterCompletedBrew, mChannelDelayAfterCompletedBrewUnit);
     }
 /*
@@ -322,6 +327,7 @@ public class CoffeeSlacker implements BrewBountyListener {
         if (tBrewMaster != null && tBrewMaster.getBrews() > 0) {
             tStrBuilder.append(String.format("%-10s %-20s %-5s %-10s\n",
                     1 + ".", tBrewMaster.getSlackUser(), tBrewMaster.getBrews(), "<-- " + cMasterTitle + "!"));
+            tStatLimit--;
         }
 
         tBrewers.stream()
