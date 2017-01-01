@@ -12,4 +12,4 @@ node_modules
 dist/
 .tmp
 app.yaml
-
+.DS_Store
