@@ -12,11 +12,15 @@ public class Brewer implements Comparable {
     private String rfid;
     private String slackUser;
     private int brews;
+    private int monthlyBrews;
+    private int wins;
 
-    public Brewer(String rfid, String slackUser, int brews) {
+    public Brewer(String rfid, String slackUser, int brews, Integer monthlyBrews, Integer wins) {
         this.rfid = rfid;
         this.slackUser = slackUser;
         this.brews = brews;
+        this.monthlyBrews = monthlyBrews == null ? 0 : monthlyBrews;
+        this.wins = wins == null ? 0 : wins;
     }
 
     public String getRfid() {
@@ -36,7 +40,29 @@ public class Brewer implements Comparable {
         if (brews < 0) {
             brews = 0;
         }
+
+        if(amount > 0) {
+            monthlyBrews += amount;
+        }
+
     }
+
+    public int getMonthlyBrews() {
+        return monthlyBrews;
+    }
+
+    public void setMonthlyBrews(int monthlyBrews) {
+        this.monthlyBrews = monthlyBrews;
+    }
+
+    public int getWins() {
+        return wins;
+    }
+
+    public void incrementWins() {
+        this.wins++;
+    }
+
 
     @Override
     public boolean equals(final Object pOther) {

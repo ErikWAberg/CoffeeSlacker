@@ -29,7 +29,7 @@ public class Brew implements BrewBountyListener {
     private TemporalUnit mExpectedBrewTimeUnit;
     private long mBountyHuntDuration;
     private TimeUnit mBountyHuntDurationTimeUnit;
-    private long mClaimableTime = 20;
+    private long mClaimableTime = 180;
     private TemporalUnit mClaimableTimeUnit = ChronoUnit.MINUTES;
 
     private Brew() {

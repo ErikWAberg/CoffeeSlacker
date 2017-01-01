@@ -21,7 +21,12 @@ public class BrewerService {
 
     @PostConstruct
     public void postConstruct() {
-
+        final List<Brewer> byMonthlyBrews = mBrewerRepository.findByMonthlyBrews(null);
+        byMonthlyBrews.forEach(pOldDocument -> mBrewerRepository.save(pOldDocument));
+        System.out.println("__________________________________________________");
+        System.out.println("__________________________________________________");
+        System.out.println("__________________________________________________");
+        System.out.println("UPDATED " + byMonthlyBrews.size());
     }
 
     public void deleteEverything() {
@@ -41,7 +46,7 @@ public class BrewerService {
     public Brewer getBrewer(String pSlackUser) {
         Brewer tBrewer = mBrewerRepository.findBySlackUser(pSlackUser);
         if (tBrewer == null) {
-            tBrewer = new Brewer(null, pSlackUser, 0);
+            tBrewer = new Brewer(null, pSlackUser, 0, 0, 0);
         }
         tBrewer = mBrewerRepository.save(tBrewer);
         return tBrewer;
@@ -55,8 +60,12 @@ public class BrewerService {
         return mBrewerRepository.save(pBrewer);
     }
 
-    public List<Brewer> getBrewersSortedByBrewCount() {
-        return mBrewerRepository.findAll(new Sort(Sort.Direction.DESC, "brews").and(new Sort(Sort.Direction.ASC, "slackUser")));
+    public List<Brewer> getAllBrewers() {
+        return mBrewerRepository.findAll();
+    }
+
+    public List<Brewer> getBrewersSortedByBrewCountThisMonth() {
+        return mBrewerRepository.findAll(new Sort(Sort.Direction.DESC, "monthlyBrews").and(new Sort(Sort.Direction.DESC, "wins")).and(new Sort(Sort.Direction.DESC, "brews")).and(new Sort(Sort.Direction.ASC, "slackUser")));
     }
 
     public Brewer getBrewMaster() {
@@ -68,9 +77,9 @@ public class BrewerService {
         return null;
     }
 
-    private List<Brewer> getTopBrewers() {
-        Brewer tBrewer = mBrewerRepository.findFirstByOrderByBrewsDesc();
-        return mBrewerRepository.findByBrews(tBrewer.getBrews());
+    public List<Brewer> getTopBrewers() {
+        Brewer tBrewer = mBrewerRepository.findFirstByOrderByMonthlyBrewsDesc();
+        return mBrewerRepository.findByMonthlyBrews(tBrewer.getMonthlyBrews());
     }
 
     public int getBrewerCount() {

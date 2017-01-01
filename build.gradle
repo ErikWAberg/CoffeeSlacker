@@ -20,9 +20,16 @@ jar {
    version = '1.0'
 }
 
-task copySettings(type: Copy) {
-    from 'secret/application.properties'
+task copy(type: Copy, overwrite: true) {
+    from 'secret'
     into 'src/main/resources'
+    include '**/application.properties'
+}
+
+compileJava.doFirst {
+
+    println "Copying secret app.props"
+    tasks.copy.execute()
 }
 
 idea {

@@ -33,7 +33,7 @@ public class BrewerController {
 
     @RequestMapping(value = "/list", method = RequestMethod.GET)
     public List<Brewer> getAllBrewers()  {
-        return mBrewerService.getBrewersSortedByBrewCount();
+        return mBrewerService.getBrewersSortedByBrewCountThisMonth();
     }
 
     @RequestMapping(value = "/find", method = RequestMethod.GET)

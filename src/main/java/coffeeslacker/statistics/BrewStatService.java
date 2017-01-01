@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
 public class BrewStatService {
 
     private final BrewStatRepository mBrewStatRepository;
+    private LocalDate mPreviousStatReset = null;
+
 
     @Autowired
     public BrewStatService(BrewStatRepository pBrewStatRepository) {
@@ -76,5 +78,13 @@ public class BrewStatService {
     public void deleteZeroBrewEntries() {
         mBrewStatRepository.findByBrews(0)
                 .forEach(mBrewStatRepository::delete);
+    }
+
+    public boolean shouldResetMonthlyStats() {
+        return mPreviousStatReset == null || !mPreviousStatReset.equals(LocalDate.now().withDayOfMonth(1));
+    }
+
+    public void monthlyStatsWereReset() {
+        mPreviousStatReset = LocalDate.now().withDayOfMonth(1);
     }
 }

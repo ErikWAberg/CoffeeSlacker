@@ -19,7 +19,8 @@ public class SensorService {
 
     @PostConstruct
     public void postConstruct() {
-
+        registerSensor(11, 20.0, 70.0, "LIGHT", "Köket");
+        registerSensor(12, 0.0, 0.0, "RFID", "Köket");
     }
 
     public void deleteEverything() {

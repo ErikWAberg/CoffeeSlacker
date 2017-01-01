@@ -10,8 +10,8 @@ public interface BrewerRepository extends MongoRepository<Brewer, String> {
 
     Brewer findBySlackUser(String slackUser);
 
-    Brewer findFirstByOrderByBrewsDesc();
+    Brewer findFirstByOrderByMonthlyBrewsDesc();
 
-    List<Brewer> findByBrews(int brews);
+    List<Brewer> findByMonthlyBrews(Integer monthlyBrews);
 
 }
