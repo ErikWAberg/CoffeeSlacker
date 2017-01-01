@@ -62,8 +62,6 @@ public class CoffeeSlacker implements BrewBountyListener, DelayedExecutorService
         mBrew = Brew.instance((DelayedExecutorService) this);
         mBrewStatService.deleteZeroBrewEntries();
         normalConfig();
-        //debugConfig();
-        toggleDebug();
     }
 
 
