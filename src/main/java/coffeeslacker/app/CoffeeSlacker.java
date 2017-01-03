@@ -299,10 +299,14 @@ public class CoffeeSlacker implements BrewBountyListener, DelayedExecutorService
 
     private String compileBrewStats(final String pSlackUser) {
 
-        final boolean tCompileEndOfMonthStats = mBrewStatService.shouldResetMonthlyStats();
-        final StringBuilder tStrBuilder = new StringBuilder();
-        final Brewer tStatBrewer = tCompileEndOfMonthStats ? null : mBrewerService.getBrewer(pSlackUser);
         final List<Brewer> tTopBrewers = mBrewerService.getTopBrewers().stream().filter(pBrewer -> pBrewer.getMonthlyBrews() > 0).collect(Collectors.toList());
+        final boolean tCompileEndOfMonthStats = mBrewStatService.shouldResetMonthlyStats() && tTopBrewers.size() > 0;
+        final Brewer tStatBrewer = tCompileEndOfMonthStats ? null : mBrewerService.getBrewer(pSlackUser);
+        final StringBuilder tStrBuilder = new StringBuilder();
+
+        if(mBrewStatService.shouldResetMonthlyStats()) {
+            mBrewStatService.monthlyStatsWereReset();
+        }
 
         if (tCompileEndOfMonthStats) {
             mBrewStatService.monthlyStatsWereReset();
@@ -476,10 +480,11 @@ public class CoffeeSlacker implements BrewBountyListener, DelayedExecutorService
                 mBrewerService.deleteBrewer("debug" + i);
                 Brewer tBrewer = mBrewerService.getBrewer("debug" + i);
                 int tBrewCount = tr.nextInt(10);
-                tBrewCount = tBrewCount == 0 ? 1 : tBrewCount;
+                tBrewer.setBrews(tBrewCount);
+                /*tBrewCount = tBrewCount == 0 ? 1 : tBrewCount;
                 for (int j = 0; j < tBrewCount; j++) {
                     tBrewer.adjustBrews(1);
-                }
+                }*/
                 mBrewerService.save(tBrewer);
             }
 
