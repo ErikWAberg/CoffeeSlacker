@@ -52,7 +52,8 @@ public class SlackController {
                 break;
             case "!help":
                 tResponse = "```" +
-                        "!claim a brew within 20minutes of an initialized brew to get points.\n" +
+                        "'Brews This Month' is reset every month and the person(s) with the most brews gains a 'win'!\n" +
+                        "!claim a brew within 180 minutes of an initialized brew to get points.\n" +
                         "!stats to view statistics & top 15 brewers.\n" +
                         "!bounty to give one of your points to the person that claims a brew within the next 15 minutes.\n" +
                         "!vaska -- not implemented yet --```";
