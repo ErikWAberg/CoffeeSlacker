@@ -100,4 +100,8 @@ public class Brewer implements Comparable {
     public void setBrews(final int brews) {
         this.brews = brews;
     }
+
+    public void setWins(int pWins) {
+        wins = pWins;
+    }
 }

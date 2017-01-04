@@ -522,9 +522,11 @@ public class CoffeeSlacker implements BrewBountyListener, DelayedExecutorService
         }
     }
 
-    void editBrewer(final String pSlackUser, final int pBrews) {
+    void editBrewer(final String pSlackUser, final int pWins, final int pBrews, final int pBrewsPerMonth) {
         final Brewer tBrewer = mBrewerService.getBrewer(pSlackUser);
         tBrewer.setBrews(pBrews);
+        tBrewer.setMonthlyBrews(pBrewsPerMonth);
+        tBrewer.setWins(pWins);
         mBrewerService.save(tBrewer);
     }
 }

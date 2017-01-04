@@ -23,8 +23,8 @@ public class DebugController {
     }
 
     @RequestMapping(value = "/editBrewer", method = RequestMethod.POST)
-    public void editBrewer(@RequestParam("slackUser") String slackUser, @RequestParam("brews") int brews) {
-        mCoffeeSlacker.editBrewer(slackUser, brews);
+    public void editBrewer(@RequestParam("slackUser") String slackUser, @RequestParam("wins") int wins, @RequestParam("brews") int brews, @RequestParam("monthly") int monthly) {
+        mCoffeeSlacker.editBrewer(slackUser, wins, brews, monthly);
     }
 
 
