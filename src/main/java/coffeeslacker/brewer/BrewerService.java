@@ -21,12 +21,7 @@ public class BrewerService {
 
     @PostConstruct
     public void postConstruct() {
-        final List<Brewer> byMonthlyBrews = mBrewerRepository.findByMonthlyBrews(null);
-        byMonthlyBrews.forEach(pOldDocument -> mBrewerRepository.save(pOldDocument));
-        System.out.println("__________________________________________________");
-        System.out.println("__________________________________________________");
-        System.out.println("__________________________________________________");
-        System.out.println("UPDATED " + byMonthlyBrews.size());
+
     }
 
     public void deleteEverything() {
