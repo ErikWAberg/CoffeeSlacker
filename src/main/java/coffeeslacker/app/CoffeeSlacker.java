@@ -238,7 +238,7 @@ public class CoffeeSlacker implements BrewBountyListener, DelayedExecutorService
 
         if (tActiveBounty == null) {
             pClaimee.adjustBrews(1);
-            response = "Brew claimed by " + pClaimee.getSlackUser() + ", now having " + pClaimee.getBrews() + " brews! (+1)";
+            response = "Brew claimed by " + pClaimee.getSlackUser() + ", now having " + pClaimee.getMonthlyBrews() + " brews this month!";
 
         } else {
             if (tActiveBounty.hasBeenClaimed()) {
@@ -257,8 +257,8 @@ public class CoffeeSlacker implements BrewBountyListener, DelayedExecutorService
                 tBountyStarter.adjustBrews(-1);
                 mBrewerService.save(tBountyStarter);
 
-                response = "Brew bounty claimed by " + pClaimee.getSlackUser() + ", now having " + pClaimee.getBrews() + " brews! (+2)"
-                        + "\n_Bounty starter " + tBountyStarter.getSlackUser() + " loses one point, having " + tBountyStarter.getBrews() + " brews. (-1)_";
+                response = "Brew bounty claimed by " + pClaimee.getSlackUser() + ", now having " + pClaimee.getMonthlyBrews() + " this month brews! (+2)"
+                        + "\n_Bounty starter " + tBountyStarter.getSlackUser() + " loses one point, having " + tBountyStarter.getMonthlyBrews() + " brews this month. (-1)_";
             }
             mBrew.bountyExpired(tActiveBounty);
         }
