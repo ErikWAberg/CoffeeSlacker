@@ -355,7 +355,7 @@ public class CoffeeSlacker implements BrewBountyListener, DelayedExecutorService
                 .limit(tStatLimit - (outOfLimit ? 1 : 0))
                 .forEach(pBrewer -> tStrBuilder.append(String.format("%-6s %-20s %-5s %-7s %-5s %-10s\n",
                         (tBrewers.indexOf(pBrewer) + 1) + ".", pBrewer.getSlackUser(), pBrewer.getWins(), pBrewer.getBrews(), pBrewer.getMonthlyBrews(),
-                        tTopBrewers.contains(pBrewer) ? "<-- " + cMasterTitle + "!" : "")));
+                        (tTopBrewers.size() == 1 && tTopBrewers.contains(pBrewer)) ? "<-- " + cMasterTitle + "!" : "")));
 
         if (outOfLimit) {
             tStrBuilder.append(String.format("...\n%-6s %-20s %-5s %-7s %-5s\n",
