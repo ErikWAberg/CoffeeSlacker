@@ -1,0 +1,21 @@
+format();
+
+struct storage_entry e;
+e.sha512[0] = 1;
+for(int i = 0; i < 10; i++) {
+  struct storage_result ins = {0};
+  ins.entry = &e;
+  bool inserted = storage_insert(&ins);
+  e.sha512[0]++;
+}
+
+
+storage_print();
+
+e.sha512[0] = 1;
+for(int i = 0; i < 10; i++) {
+  struct storage_result search = {0};
+  search.entry = &e;
+  bool found = storage_search(&search);
+  e.sha512[0]++;
+}
