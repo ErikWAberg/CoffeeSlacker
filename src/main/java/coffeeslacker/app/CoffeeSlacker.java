@@ -62,6 +62,7 @@ public class CoffeeSlacker implements BrewBountyListener, DelayedExecutorService
         mBrew = Brew.instance((DelayedExecutorService) this);
         mBrewStatService.deleteZeroBrewEntries();
         normalConfig();
+        mBrewStatService.monthlyStatsWereReset();
     }
 
 
@@ -398,7 +399,7 @@ public class CoffeeSlacker implements BrewBountyListener, DelayedExecutorService
     private String averageThisMonth() {
         LocalDate tDate = LocalDate.now();
         if (mThisMonthStats == null || !mThisMonthStats.getKey().equals(tDate.withDayOfMonth(1))) {
-            mThisMonthStats = new AbstractMap.SimpleEntry<>(tDate.withDayOfMonth(1), new BrewStat[31]);
+            mThisMonthStats = new AbstractMap.SimpleEntry<>(tDate.withDayOfMonth(1), new BrewStat[32]);
         }
 
         for (int tDay = 1; tDay <= tDate.getDayOfMonth(); tDay++) {

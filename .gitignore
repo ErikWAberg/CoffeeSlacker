@@ -16,3 +16,7 @@ app.yaml
 CoffeeSlacker.iml
 CoffeeSlacker.ipr
 CoffeeSlacker.iws
+.clang_complete
+.gcc-flags.json
+.pioenvs/
+.piolibdeps/
