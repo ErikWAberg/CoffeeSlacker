@@ -36,6 +36,16 @@ public class SlackController {
 
 
         cLogger.info("Slack sniffer: " + user_name + ", " + text);
+
+        if(text.contains("!register")) {
+            String tIntegerStringHopefullyWishfully = text.replace("!register", "").trim();
+            try {
+                final int tIntToRfidKey = Integer.parseInt(tIntegerStringHopefullyWishfully);
+                return new SlackResponse(mCoffeeSlacker.onNuddisRegister(tIntToRfidKey, user_name));
+            } catch (NumberFormatException e) {
+            }
+        }
+
         String tResponse = "";
 
         switch (text.trim().toLowerCase()) {
@@ -53,6 +63,7 @@ public class SlackController {
             case "!help":
                 tResponse = "```" +
                         "'Brews This Month' is reset every month and the person(s) with the most brews gains a 'win'!\n" +
+                        "To register tag aka nuddis, scan your tag and follow instructions posted in the chat.\n" +
                         "!claim a brew within 180 minutes of an initialized brew to get points.\n" +
                         "!stats to view statistics & top 15 brewers.\n" +
                         "!bounty to give one of your points to the person that claims a brew within the next 15 minutes.\n" +

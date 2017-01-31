@@ -4,6 +4,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -13,17 +18,17 @@ public class BrewStatService {
 
     private final BrewStatRepository mBrewStatRepository;
     private LocalDate mPreviousStatReset = null;
-
+    private final String cLastStatResetFile = "previous-reset.txt";
 
     @Autowired
     public BrewStatService(BrewStatRepository pBrewStatRepository) {
         mBrewStatRepository = pBrewStatRepository;
     }
-
+/*
     public void deleteEverything() {
         mBrewStatRepository.deleteAll();
     }
-
+*/
 
     public BrewStat getBrewStatByDate(LocalDate pDate) {
         BrewStat tBrewStat = mBrewStatRepository.findByDate(pDate);
@@ -81,10 +86,42 @@ public class BrewStatService {
     }
 
     public boolean shouldResetMonthlyStats() {
-        return mPreviousStatReset == null || !mPreviousStatReset.equals(LocalDate.now().withDayOfMonth(1));
+        // i dont care man
+        if(mPreviousStatReset == null) {
+            if(!Files.exists(Paths.get(cLastStatResetFile))) {
+                return true;
+            }
+            mPreviousStatReset = LocalDate.parse(getPersistedResetDate());
+        }
+        return !mPreviousStatReset.equals(LocalDate.now().withDayOfMonth(1));
     }
 
     public void monthlyStatsWereReset() {
         mPreviousStatReset = LocalDate.now().withDayOfMonth(1);
+        persistResetDate();
     }
+
+
+    private String getPersistedResetDate() {
+        try {
+            return new String(Files.readAllBytes(Paths.get(cLastStatResetFile)));
+        } catch (IOException pE) {
+            pE.printStackTrace();
+        }
+        return null;
+    }
+
+    private void persistResetDate() {
+
+        try {
+            Files.write(Paths.get(cLastStatResetFile),
+                    LocalDate.now().withDayOfMonth(1).toString().getBytes(Charset.forName("UTF-8")),
+                    StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.CREATE);
+        } catch (IOException pE) {
+            pE.printStackTrace();
+        }
+
+    }
+
+
 }

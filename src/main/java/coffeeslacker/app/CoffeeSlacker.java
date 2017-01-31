@@ -108,16 +108,7 @@ public class CoffeeSlacker implements BrewBountyListener, DelayedExecutorService
                         onLuxScan(pValue, tSensor);
                         break;
                     case RFID:
-                        cLogger.info("On RFID scan: RFID=" + pValue);
-
-                        final Brewer tBrewerByRfid = mBrewerService.getBrewerByRfid(pValue);
-                        if (tBrewerByRfid != null) {
-                            veryBrewClaim(tBrewerByRfid);
-                        } else {
-                            cLogger.info("RFID not registered: " + pValue);
-                            //need slack-bot
-                            //mSlackService.send("Bleep, bloop! I mean, hello RFID-Brewer! I don't think we've met before? PM slackbot with '!register'");
-                        }
+                        onRfidScan(pValue);
 
                         break;
                     case POWER:
@@ -130,6 +121,38 @@ public class CoffeeSlacker implements BrewBountyListener, DelayedExecutorService
         } else {
             cLogger.info("Couldn't find sensor with id: " + pSensorId);
         }
+    }
+
+    private Map<Integer, String> mIntToRfidMap = new HashMap<>();
+
+    private void onRfidScan(final String pValue) {
+        cLogger.info("On RFID scan: RFID=" + pValue);
+
+        final Brewer tBrewerByRfid = mBrewerService.getBrewerByRfid(pValue);
+        if (tBrewerByRfid != null) {
+            veryBrewClaim(tBrewerByRfid);
+        } else {
+            if(mIntToRfidMap.containsValue(pValue)) return;
+
+            Integer tRfidKey = null;
+            while(true) {
+                tRfidKey = new Random().nextInt(100 + 1) + 1;
+                if(!mIntToRfidMap.containsKey(tRfidKey)) break;
+            }
+            mIntToRfidMap.put(tRfidKey, pValue);
+            cLogger.info("RFID not registered: " + pValue + ", mapping to " + tRfidKey);
+            mSlackService.send("Got a nuddis, type ```!register " + tRfidKey + "``` to hook it up!");
+        }
+    }
+
+    public String onNuddisRegister(Integer pIntToRfidKey, String slackUser) {
+        final String tRfid = mIntToRfidMap.get(pIntToRfidKey);
+        if(tRfid == null) {
+            return "Ain't got any nuddis associated with that temporary key";
+        }
+        mBrewerService.registerRfid(slackUser, tRfid);
+        mIntToRfidMap.remove(pIntToRfidKey);
+        return "Alright, got it!";
     }
 
     private void onPowerScan(final String pValue, final Sensor pSensor) {
@@ -516,11 +539,11 @@ public class CoffeeSlacker implements BrewBountyListener, DelayedExecutorService
     }
 
     void blyat(final String pAsd) {
-        if (pAsd.equals("blaaat")) {
+        /*if (pAsd.equals("blaaat")) {
             mBrewStatService.deleteEverything();
             mBrewerService.deleteEverything();
             mSensorService.deleteEverything();
-        }
+        }*/
     }
 
     void editBrewer(final String pSlackUser, final int pWins, final int pBrews, final int pBrewsPerMonth) {

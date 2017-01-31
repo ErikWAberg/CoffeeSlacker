@@ -54,6 +54,7 @@ public class Brew implements BrewBountyListener {
     private BrewState mBrewState = WAITFORBREW;
     private Brewer mClaimer = null;
     private BrewBounty mBounty = null;
+    private String mAssociatedRfid = null;
     private Map.Entry<LocalDate, Boolean> mHasBrewedToday = new SimpleEntry<>(LocalDate.now(), false);
 
     public void waitForBrew() {
@@ -64,6 +65,7 @@ public class Brew implements BrewBountyListener {
         mBrewState = BREWING;
         mClaimer = null;
         mStartTime = LocalDateTime.now();
+        mAssociatedRfid = null;
         if (!mHasBrewedToday.getKey().equals(LocalDate.now()) || !mHasBrewedToday.getValue()) {
             mHasBrewedToday = new SimpleEntry<>(LocalDate.now(), true);
         }
@@ -87,6 +89,14 @@ public class Brew implements BrewBountyListener {
 
     public boolean afterExpectedBrewTime() {
         return LocalDateTime.now().isAfter(mStartTime.plus(mExpectedBrewTime, mExpectedBrewTimeUnit));
+    }
+
+    public void associateWithRfid(String rfid) {
+        mAssociatedRfid = rfid;
+    }
+
+    public String getAssociatedRfid() {
+        return mAssociatedRfid;
     }
 
     public boolean hasBeenClaimed() {

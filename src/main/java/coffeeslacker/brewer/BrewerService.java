@@ -23,15 +23,19 @@ public class BrewerService {
     public void postConstruct() {
 
     }
-
+/*
     public void deleteEverything() {
         mBrewerRepository.deleteAll();
-    }
+    }*/
 
     public Brewer registerRfid(final String pSlackUser, final String pRfid) {
         Brewer tBySlackUser = getBrewer(pSlackUser);
-        tBySlackUser.setRfid(pRfid);
-        return mBrewerRepository.save(tBySlackUser);
+        if(tBySlackUser != null) {
+            tBySlackUser.setRfid(pRfid);
+            tBySlackUser = mBrewerRepository.save(tBySlackUser);
+        }
+
+        return tBySlackUser;
     }
 
     public Brewer getBrewerByRfid(String pRfid) {
