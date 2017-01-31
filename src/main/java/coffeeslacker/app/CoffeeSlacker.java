@@ -136,7 +136,7 @@ public class CoffeeSlacker implements BrewBountyListener, DelayedExecutorService
 
             Integer tRfidKey = null;
             while(true) {
-                tRfidKey = new Random().nextInt(100 + 1) + 1;
+                tRfidKey = new Random().nextInt(1000 + 1) + 1;
                 if(!mIntToRfidMap.containsKey(tRfidKey)) break;
             }
             mIntToRfidMap.put(tRfidKey, pValue);
