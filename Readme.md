@@ -1,9 +1,11 @@
 todo
-bla bla bla description
-something something coffee slacker
-requires some sensor which register that the coffee brewing has been initialized/completed and notifies the service
+
+
+coffee slacker requires some sensor which registers that the coffee brewing has been initialized/completed and notifies the service
+
 
 install & launch mongod
+
 
 Nothing really hosted on website, but if you want to use/extend it:
 install bower
